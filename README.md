@@ -130,11 +130,23 @@ As referências específicas são apresentadas ao final de cada volume.
 
 ---
 
-## 👨‍💻 Autor
+## 👨‍💻 Autores
 
-**Higor Ferreira Silva*
+**HIGOR FERREIRA SILVA*
 
 Graduando em Engenharia de Computação — Universidade Federal de Goiás (UFG)
+
+**KHALIL ALVES MOTTA*
+
+Graduando em Ciência da Computação — Universidade Federal de Goiás (UFG)
+
+**LOURENCO TABOSA PANIAGO*
+
+Graduando em Ciência da Computação — Universidade Federal de Goiás (UFG)
+
+**WILSON MARANHÃO RAMOS FILHO*
+
+Graduando em Ciência da Computação — Universidade Federal de Goiás (UFG)
 
 ---
 
