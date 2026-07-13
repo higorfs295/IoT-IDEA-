@@ -1,21 +1,22 @@
 # 🔒 IoT Knowledge Hub
-### Engenharia de Computação • UFG • 2026/3
+
+## Engenharia de Computação • UFG • 2026/3
 
 > Hub de ideação, documentação e consolidação dos materiais produzidos durante a disciplina de **Internet das Coisas (IoT)**, ofertada no período **2026/3 (Férias de Inverno)** da Universidade Federal de Goiás.
 
 ---
 
-# 📖 Sobre
+## 📖 Sobre
 
-Este repositório tem como objetivo reunir, organizar e documentar todo o conhecimento produzido ao longo da disciplina de **Internet das Coisas (IoT)**.
+Este repositório reúne, organiza e documenta o conhecimento produzido ao longo da disciplina de **Internet das Coisas (IoT)**.
 
-Diferentemente de um repositório de projetos, este espaço funciona como uma **base de conhecimento acadêmica**, concentrando materiais produzidos durante as aulas, pesquisas, seminários, estudos individuais e demais atividades desenvolvidas ao longo da disciplina.
+Diferentemente de um repositório de projetos, este espaço funciona como uma **base de conhecimento acadêmica**, concentrando materiais produzidos durante as aulas, pesquisas, seminários, estudos individuais e demais atividades.
 
-A proposta é que toda documentação produzida permaneça organizada e possa servir futuramente como material de consulta para disciplinas correlatas, projetos de pesquisa, iniciação científica e trabalhos de conclusão de curso.
+A proposta é que toda documentação permaneça organizada e sirva futuramente como material de consulta para disciplinas correlatas, projetos de pesquisa, iniciação científica e trabalhos de conclusão de curso.
 
 ---
 
-# 🎯 Objetivos
+## 🎯 Objetivos
 
 - Centralizar toda a produção da disciplina em um único local.
 - Organizar pesquisas e estudos realizados durante o semestre.
@@ -25,128 +26,115 @@ A proposta é que toda documentação produzida permaneça organizada e possa se
 
 ---
 
-# 📚 Temas de Interesse
+## 📚 Dossiê Técnico — Segurança da Informação em Dispositivos IoT
 
-Ao longo da disciplina, este repositório poderá abordar assuntos como:
+O principal material disponível é o **Dossiê Técnico de Segurança da Informação em Dispositivos IoT**, estruturado em **3 partes** e **10 volumes**.
 
-- Internet das Coisas (IoT)
-- Industrial Internet of Things (IIoT)
-- Sistemas Ciberfísicos (Cyber-Physical Systems)
-- Computação de Borda (Edge Computing)
-- Fog Computing
-- Computação em Nuvem
-- Protocolos de Comunicação
-- MQTT
-- CoAP
-- Bluetooth Low Energy
-- LoRaWAN
-- Segurança da Informação em IoT
-- Botnets
-- Modelagem de Ameaças
-- Arquiteturas Seguras
-- Criptografia
-- Hardware Seguro
-- Atualizações OTA
-- Smart Cities
-- Indústria 4.0
-- Normas e Frameworks Internacionais
+> 📄 Para uma visão consolidada de todo o conteúdo, consulte o **[Contexto Detalhado do Repositório](CONTEXTO.md)**.
 
-Os tópicos serão desenvolvidos conforme o andamento da disciplina.
+### 🗺️ Trilha de leitura
+
+```mermaid
+flowchart TB
+    subgraph P1["Parte I — Fundamentos"]
+        V1[I · Fundamentos IoT/IIoT]
+        V2[II · Hardware Seguro]
+        V3[III · Protocolos e Criptografia]
+    end
+    subgraph P2["Parte II — Ambientes e Ataques"]
+        V4[IV · Segurança Industrial]
+        V5[V · Ataques e Botnets]
+        V6[VI · Cloud, APIs, Observabilidade]
+    end
+    subgraph P3["Parte III — Ciclo de Vida e Prática"]
+        V7[VII · Ciclo de Vida Seguro]
+        V8[VIII · Normas e Legislação]
+        V9[IX · Estudos de Caso]
+        V10[X · Guia de Apresentação]
+    end
+    P1 --> P2 --> P3
+```
+
+### 📑 Índice dos volumes
+
+| # | Volume | Temas centrais |
+| --- | -------- | ---------------- |
+| I | [Fundamentos da Segurança em IoT e IIoT](Dossie/Parte%201/Volume%201.md) | IoT × IIoT, CPS, Edge/Fog/Cloud, STRIDE |
+| II | [Hardware Seguro e Raiz de Confiança](Dossie/Parte%201/Volume%202.md) | Root of Trust, Secure Boot, Flash Encryption, TrustZone |
+| III | [Protocolos, Criptografia e Comunicação Segura](Dossie/Parte%201/Volume%203.md) | MQTT, CoAP, TLS/DTLS, PKI, mTLS, OTA |
+| IV | [Segurança Industrial (IIoT) e Arquitetura Purdue](Dossie/Parte%202/Volume%204.md) | TI×OT, ICS/SCADA, Purdue, segmentação |
+| V | [Ataques Reais, Botnets e Modelagem de Ameaças](Dossie/Parte%202/Volume%205.md) | Mirai, DDoS, STRIDE, OWASP IoT Top 10 |
+| VI | [Cloud, Edge, APIs, Observabilidade e Resposta a Incidentes](Dossie/Parte%202/Volume%206.md) | Device Twin, BOLA, OAuth2/JWT, SIEM |
+| VII | [Ciclo de Vida Seguro dos Dispositivos IoT](Dossie/Parte%203/Volume%207.md) | Secure by Design, CVE/CVSS, SBOM, DevSecOps |
+| VIII | [Normas, Frameworks e Legislação Internacional](Dossie/Parte%203/Volume%208.md) | NIST CSF 2.0, ISA/IEC 62443, ETSI, LGPD, GDPR, CRA |
+| IX | [Estudos de Caso e Aplicações Práticas](Dossie/Parte%203/Volume%209.md) | Smart Home, Hospital, Indústria 4.0, Smart Grid |
+| X | [Guia para Apresentação e Sala de Aula Invertida](Dossie/Parte%203/Volume%2010.md) | Roteiros, analogias, banco de perguntas |
 
 ---
 
-# 📂 Estrutura Atual
-
-Atualmente o repositório encontra-se organizado da seguinte forma:
+## 📂 Estrutura do Repositório
 
 ```text
 .
-├── README.md
-└── dossie/
-    ├── Parte 1/
-    ├── Parte 2/
-    └── Parte 3/
+├── README.md              → este arquivo (visão geral e navegação)
+├── CONTEXTO.md            → contexto detalhado de todo o conteúdo
+└── Dossie/
+    ├── Parte 1/           → Volumes I, II, III (Fundamentos)
+    ├── Parte 2/           → Volumes IV, V, VI (Ambientes e Ataques)
+    └── Parte 3/           → Volumes VII, VIII, IX, X (Ciclo de Vida e Prática)
 ```
 
----
-
-# 📖 Dossiê
-
-O principal material atualmente disponível é o **Dossiê Técnico de Segurança da Informação em Dispositivos IoT**.
-
-O documento foi estruturado em três partes e aborda temas como:
-
-- Fundamentos da IoT e IIoT;
-- Hardware Seguro;
-- Protocolos de Comunicação;
-- Criptografia;
-- Segurança Industrial;
-- Botnets;
-- Ataques Reais;
-- Computação em Nuvem;
-- Ciclo de Vida Seguro;
-- Normas Internacionais;
-- Estudos de Caso;
-- Material de apoio para seminários e monitorias.
+> 💡 Os diagramas do dossiê usam **[Mermaid](https://mermaid.js.org/)**, renderizado nativamente pelo GitHub. Basta abrir os arquivos `.md` para visualizá-los.
 
 ---
 
-# 🚧 Evolução do Repositório
+## 🧩 Temas de Interesse
 
-Este repositório será expandido gradualmente conforme o avanço da disciplina.
+Ao longo da disciplina, este repositório aborda assuntos como:
 
-Novos materiais poderão incluir:
-
-- pesquisas;
-- estudos dirigidos;
-- apresentações;
-- diagramas;
-- mapas mentais;
-- resumos;
-- exercícios;
-- estudos de caso;
-- laboratórios;
-- documentação complementar.
-
-A estrutura do projeto poderá sofrer alterações para acomodar novos conteúdos.
+`IoT` · `IIoT` · `Sistemas Ciberfísicos (CPS)` · `Edge/Fog Computing` · `Computação em Nuvem` ·
+`MQTT` · `CoAP` · `TLS/DTLS` · `Bluetooth Low Energy` · `LoRaWAN` ·
+`Segurança da Informação` · `Botnets` · `Modelagem de Ameaças (STRIDE)` · `Arquiteturas Seguras` ·
+`Criptografia` · `Hardware Seguro` · `Atualizações OTA` · `Smart Cities` · `Indústria 4.0` ·
+`Normas e Frameworks Internacionais`
 
 ---
 
-# 📚 Referências
+## 🚧 Evolução do Repositório
 
-Os documentos presentes neste repositório poderão utilizar como base materiais provenientes de:
-
-- IEEE Xplore
-- ACM Digital Library
-- NIST
-- OWASP
-- IETF RFCs
-- ISA/IEC 62443
-- ETSI
-- Livros técnicos especializados
-- Documentação oficial de fabricantes
-
-As referências específicas serão apresentadas nos respectivos documentos.
+Este repositório será expandido gradualmente conforme o avanço da disciplina. Novos materiais poderão incluir: pesquisas, estudos dirigidos, apresentações, diagramas, mapas mentais, resumos, exercícios, estudos de caso, laboratórios e documentação complementar.
 
 ---
 
-# 🎓 Informações da Disciplina
+## 📚 Referências
+
+Os documentos utilizam como base materiais provenientes de:
+
+- IEEE Xplore · ACM Digital Library
+- NIST · OWASP · IETF RFCs
+- ISA/IEC 62443 · ETSI EN 303 645
+- ENISA · MITRE ATT&CK
+- Livros técnicos especializados e documentação oficial de fabricantes
+
+As referências específicas são apresentadas ao final de cada volume.
+
+---
+
+## 🎓 Informações da Disciplina
 
 | Item | Informação |
-|------|------------|
+| ------ | ------------ |
 | UA concedente | Instituto de Informática (UFG) |
 | Disciplina | Internet das Coisas (IoT) |
 | Período | 2026/3 (Férias de Inverno) |
 
 ---
 
-# 👨‍💻 Autor
+## 👨‍💻 Autor
 
-**Higor Ferreira Silva**
+**Higor Ferreira Silva*
 
-Graduando em Engenharia de Computação
-
-Universidade Federal de Goiás (UFG)
+Graduando em Engenharia de Computação — Universidade Federal de Goiás (UFG)
 
 ---
 

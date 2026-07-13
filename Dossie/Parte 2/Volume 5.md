@@ -1,49 +1,37 @@
-
 # Volume V — Ataques Reais, Botnets, Vulnerabilidades e Modelagem de Ameaças para Dispositivos IoT
 
 ---
 
-# 1. Introdução
+## 1. Introdução
 
-Todo sistema conectado à Internet está sujeito a ataques. Entretanto, dispositivos IoT apresentam características que os tornam especialmente atrativos para criminosos.
+Todo sistema conectado à Internet está sujeito a ataques. Entretanto, dispositivos IoT apresentam características que os tornam **especialmente atrativos** para criminosos: permanecem ligados por anos, recebem poucas atualizações, utilizam senhas padrão e executam firmwares desenvolvidos com recursos limitados.
 
-Em muitos casos, esses equipamentos permanecem ligados durante anos, recebem poucas atualizações, utilizam senhas padrão e executam firmwares desenvolvidos com recursos limitados.
+Nos últimos anos, diversos incidentes demonstraram que ataques contra IoT podem provocar impactos globais.
 
-Essas características fazem com que milhões de dispositivos vulneráveis permaneçam permanentemente expostos à Internet.
+```mermaid
+timeline
+    title Marcos de ataques a IoT / ICS
+    2010 : Stuxnet (sabota centrífugas nucleares)
+    2015-2016 : BlackEnergy / Industroyer (redes elétricas na Ucrânia)
+    2016 : Mirai (DDoS recorde contra a Dyn)
+    2017 : Triton/Trisis (sistemas de segurança - SIS) : BlueBorne (Bluetooth)
+    2018 : VPNFilter (roteadores) : Mozi (botnet P2P)
+    2020 : Ripple20 (pilha TCP/IP Treck)
+    2021-2022 : BrakTooth / Pipedream (framework ICS)
+```
 
-Nos últimos anos, diversos incidentes demonstraram que ataques contra dispositivos IoT podem provocar impactos globais.
-
-Entre os principais exemplos estão:
-
-- Mirai;
-- Mozi;
-- Hajime;
-- VPNFilter;
-- Ripple20;
-- BrakTooth;
-- SweynTooth;
-- BlueBorne.
-
-Além disso, ambientes industriais passaram a sofrer ataques altamente especializados, como:
-
-- Stuxnet;
-- Triton;
-- Industroyer;
-- BlackEnergy;
-- Pipedream.
-
-Este capítulo apresenta esses ataques sob uma perspectiva didática, buscando compreender como eles funcionam, quais vulnerabilidades exploram e quais estratégias podem ser utilizadas para evitá-los.
+Este capítulo apresenta esses ataques sob uma perspectiva didática: como funcionam, quais vulnerabilidades exploram e quais estratégias os evitam.
 
 ---
 
-# Objetivos deste volume
+## Objetivos deste volume
 
 Ao final deste capítulo o estudante deverá compreender:
 
 - o conceito de botnet;
 - funcionamento de ataques DDoS utilizando IoT;
 - principais vulnerabilidades exploradas por atacantes;
-- conceitos básicos de modelagem de ameaças;
+- conceitos de modelagem de ameaças;
 - STRIDE;
 - OWASP IoT Top 10;
 - MITRE ATT&CK for ICS;
@@ -51,538 +39,245 @@ Ao final deste capítulo o estudante deverá compreender:
 
 ---
 
-# 2. O que é uma Botnet?
+## 2. O que é uma Botnet?
 
-Uma botnet consiste em um conjunto de dispositivos comprometidos e controlados remotamente por um atacante.
+Uma **botnet** é um conjunto de dispositivos comprometidos e controlados remotamente por um atacante. Cada equipamento infectado passa a ser um **bot** ou **zumbi** e, embora aparente funcionar normalmente, aguarda comandos de um servidor de **Comando e Controle (C2)**.
 
-Cada equipamento infectado passa a ser chamado de **bot** ou **zumbi**.
+```mermaid
+flowchart TD
+    A[Atacante / Botmaster] --> C2[Servidor C2]
+    C2 --> B1[Bot 1 — câmera IP]
+    C2 --> B2[Bot 2 — DVR]
+    C2 --> B3[Bot 3 — roteador]
+    C2 --> BN[... milhares de bots]
+    B1 & B2 & B3 & BN --> ALVO[🎯 Ataque coordenado]
+    style A fill:#f8d7da,stroke:#dc3545
+    style ALVO fill:#f8d7da,stroke:#dc3545
+```
 
-Esses dispositivos permanecem aparentemente funcionando normalmente.
+Os dispositivos podem executar: ataques DDoS, envio de spam, mineração de criptomoedas, espionagem e propagação para novos dispositivos.
 
-Entretanto, em segundo plano, aguardam comandos enviados por um servidor de comando e controle (Command and Control — C2).
-
----
-
-## Funcionamento
-
-Atacante
-
-↓
-
-Servidor C2
-
-↓
-
-Milhares de dispositivos IoT
-
-↓
-
-Ataque coordenado
+> **💡 Curiosidade:** Muitos proprietários sequer percebem que seus equipamentos foram comprometidos. A câmera continua gravando normalmente enquanto participa de ataques contra outros sistemas.
 
 ---
 
-Os dispositivos podem executar diversas ações:
+## 3. O Caso Mirai
 
-- ataques DDoS;
-- envio de spam;
-- mineração de criptomoedas;
-- espionagem;
-- propagação para novos dispositivos.
+O **Mirai** tornou-se um dos malwares mais conhecidos da história da IoT. Seu funcionamento era relativamente simples: varria a Internet procurando dispositivos com **Telnet** ou **SSH** expostos e tentava autenticar-se com uma lista de **credenciais padrão** de fábrica (por exemplo, `admin/admin`, `root/root`, `admin/password`). Ao obter sucesso, instalava-se na memória RAM e integrava o dispositivo à botnet.
 
----
+```mermaid
+flowchart LR
+    M[Mirai] --> SCAN[Varre a Internet<br/>Telnet/SSH]
+    SCAN --> TRY[Testa credenciais padrão]
+    TRY -->|sucesso| INF[Infecta na RAM]
+    INF --> BOT[Novo bot na botnet]
+    BOT --> SCAN
+    style INF fill:#f8d7da,stroke:#dc3545
+```
 
-# Curiosidade
+### O ataque à Dyn
 
-Muitos proprietários sequer percebem que seus equipamentos foram comprometidos.
+> **📈 Dado verificado:** Em **21–22 de outubro de 2016**, a botnet Mirai lançou ondas sucessivas de DDoS contra a **Dyn**, provedora de DNS gerenciado. Estimativas relatam pico próximo de **~1,2 Tbps**, originado de **dezenas de milhões de endereços IP**. O ataque tornou temporariamente inacessíveis serviços como **Twitter, Netflix, Reddit, Spotify, GitHub, Amazon e PayPal**, afetando milhões de usuários — principalmente na América do Norte e Europa.
 
-A câmera continua gravando normalmente enquanto participa de ataques contra outros sistemas.
+### O que aprendemos com o Mirai?
 
----
-
-# 3. O Caso Mirai
-
-O Mirai tornou-se um dos malwares mais conhecidos da história da Internet das Coisas.
-
-Seu funcionamento era relativamente simples.
-
-O malware realizava varreduras contínuas na Internet procurando dispositivos acessíveis via:
-
-- Telnet;
-- SSH.
-
-Após encontrar um dispositivo, tentava autenticar-se utilizando listas de credenciais padrão.
-
-Exemplos:
-
-admin/admin
-
-root/root
-
-admin/password
-
-Caso obtivesse sucesso, instalava-se na memória RAM do equipamento.
-
-O dispositivo passava então a integrar uma enorme botnet.
+O problema não era apenas o malware. Grande parte da responsabilidade estava nos **próprios dispositivos**, que utilizavam senhas padrão, serviços Telnet habilitados e ausência de atualizações. O código-fonte do Mirai foi publicado, o que gerou dezenas de variantes.
 
 ---
 
-## Consequências
+## 4. Mozi e outras variantes
 
-Em 2016, a botnet Mirai foi utilizada em ataques DDoS contra diversos serviços da Internet.
+Após o Mirai surgiram diversas variantes. Uma das mais conhecidas foi o **Mozi**, que passou a utilizar comunicação baseada em redes **P2P (Peer-to-Peer)**, dificultando significativamente sua interrupção (não há um C2 central para derrubar). Entre seus alvos: roteadores, DVRs, câmeras IP e gateways domésticos.
 
-O ataque ao provedor Dyn afetou plataformas como:
-
-- Twitter;
-- Netflix;
-- Reddit;
-- Spotify;
-- GitHub.
-
-Milhões de usuários foram impactados.
+| Botnet | Ano | Diferencial | Alvos |
+| -------- | ----- | ------------- | ------- |
+| **Mirai** | 2016 | Credenciais padrão, C2 central | Câmeras, DVRs, roteadores |
+| **Hajime** | 2016 | P2P, sem carga destrutiva conhecida | IoT diversos |
+| **Mozi** | 2019 | Rede P2P (DHT) | Roteadores, DVRs |
+| **VPNFilter** | 2018 | Persistência, módulos para SCADA | Roteadores/NAS |
 
 ---
 
-# O que aprendemos com Mirai?
+## 5. Ataques DDoS
 
-O problema não era apenas o malware.
+**DDoS** (*Distributed Denial of Service*) busca tornar um serviço indisponível pela sobrecarga. Se um servidor atende mil requisições por segundo e um milhão de dispositivos enviam solicitações simultaneamente, ele fica sobrecarregado e usuários legítimos deixam de conseguir acesso.
 
-Grande parte da responsabilidade estava nos próprios dispositivos, que utilizavam:
-
-- senhas padrão;
-- serviços Telnet habilitados;
-- ausência de atualizações.
-
----
-
-# 4. Mozi
-
-Após o Mirai surgiram diversas variantes.
-
-Uma das mais conhecidas foi o Mozi.
-
-Ao contrário do Mirai, ele passou a utilizar comunicação baseada em redes P2P (Peer-to-Peer).
-
-Isso dificultou significativamente sua interrupção.
-
-Entre seus alvos estavam:
-
-- roteadores;
-- DVRs;
-- câmeras IP;
-- gateways domésticos.
+```mermaid
+flowchart TD
+    B1[Bot 1] --> SRV[Servidor alvo]
+    B2[Bot 2] --> SRV
+    B3[Bot 3] --> SRV
+    BN[Bot 500.000] --> SRV
+    SRV --> OVL[⚠️ Sobrecarga]
+    OVL --> DOWN[Serviço indisponível para<br/>usuários legítimos]
+    style DOWN fill:#f8d7da,stroke:#dc3545
+```
 
 ---
 
-# 5. Ataques DDoS
+## 6. Vulnerabilidades comuns em IoT
 
-DDoS significa:
+| Vulnerabilidade | Descrição | Impacto |
+| ----------------- | ----------- | --------- |
+| **Senhas padrão** | Credenciais de fábrica não alteradas | Comprometimento trivial (Mirai) |
+| **Firmware desatualizado** | Correções não aplicadas | Exploração de CVEs conhecidas |
+| **Serviços desnecessários** | Telnet, FTP, SSH, painéis abertos | Amplia superfície de ataque |
+| **Criptografia inexistente** | Tráfego em texto puro | Interceptação de dados |
+| **APIs inseguras** | Backend mal implementado | Acesso a dispositivos de terceiros |
 
-Distributed Denial of Service.
-
-O objetivo consiste em tornar um serviço indisponível.
-
-Imagine um servidor capaz de atender mil requisições por segundo.
-
-Caso um milhão de dispositivos enviem solicitações simultaneamente, o servidor ficará sobrecarregado.
-
-Resultado:
-
-Usuários legítimos deixam de conseguir acessar o serviço.
+> **⚠️ Atenção:** Muitas invasões **não** ocorrem através do dispositivo. O atacante explora a **infraestrutura em nuvem** responsável por controlá-lo (aprofundado no Volume VI).
 
 ---
 
-# Exemplo
+## 7. OWASP IoT Top 10 (2018)
 
-Bot 1
+A OWASP mantém uma lista das vulnerabilidades mais comuns em dispositivos IoT, referência para fabricantes e auditorias.
 
-↓
-
-Bot 2
-
-↓
-
-Bot 3
-
-↓
-
-...
-
-↓
-
-Bot 500.000
-
-↓
-
-Servidor
-
-↓
-
-Sobrecarga
-
-↓
-
-Interrupção do serviço
+| # | Vulnerabilidade (OWASP IoT Top 10 — 2018) |
+| --- | -------------------------------------------- |
+| 1 | Senhas fracas, adivinháveis ou embutidas (*hardcoded*) |
+| 2 | Serviços de rede inseguros |
+| 3 | Interfaces inseguras no ecossistema (web, API, cloud, mobile) |
+| 4 | Falta de mecanismo de atualização segura |
+| 5 | Uso de componentes inseguros ou desatualizados |
+| 6 | Proteção de privacidade insuficiente |
+| 7 | Transferência e armazenamento inseguros de dados |
+| 8 | Falta de gerenciamento de dispositivos |
+| 9 | Configuração padrão insegura |
+| 10 | Falta de proteção física (*anti-tampering*) |
 
 ---
 
-# 6. Vulnerabilidades comuns em IoT
+## 8. Modelagem de ameaças
 
-Diversas falhas aparecem repetidamente em equipamentos comerciais.
+Antes de proteger um sistema é necessário compreender quais ameaças existem. Esse processo — **Threat Modeling** — responde: *Quem pode atacar? O que deseja? Quais recursos possui? Qual ativo precisa ser protegido? Qual o impacto?*
 
-Entre elas destacam-se:
+### Exemplo — fechadura inteligente
 
----
-
-## Senhas padrão
-
-Ainda representam uma das principais causas de comprometimento.
-
----
-
-## Firmware desatualizado
-
-Correções deixam de ser aplicadas.
-
-Novas vulnerabilidades permanecem exploráveis.
+| Elemento | Análise |
+| ---------- | --------- |
+| **Ativos** | Chave digital, histórico de acesso, credenciais Wi-Fi |
+| **Atacantes** | Criminosos, invasores da rede doméstica, insiders |
+| **Impactos** | Invasão da residência, espionagem, indisponibilidade |
 
 ---
 
-## Serviços desnecessários
+## 9. STRIDE
 
-Telnet.
+O modelo **STRIDE** (Microsoft) organiza ameaças em seis categorias, cada uma violando uma propriedade de segurança.
 
-FTP.
+```mermaid
+mindmap
+  root((STRIDE))
+    S["Spoofing — falsificar identidade"]
+    T["Tampering — alterar dados"]
+    R["Repudiation — negar ação"]
+    I["Information Disclosure — vazar dados"]
+    D["Denial of Service — indisponibilizar"]
+    E["Elevation of Privilege — escalar privilégios"]
+```
 
-SSH.
+| Ameaça | Propriedade violada | Mitigação típica |
+| -------- | --------------------- | ------------------- |
+| **S**poofing | Autenticidade | Certificados, mTLS |
+| **T**ampering | Integridade | Assinatura digital, hash |
+| **R**epudiation | Não repúdio | Logs assinados, auditoria |
+| **I**nformation Disclosure | Confidencialidade | Criptografia (TLS) |
+| **D**enial of Service | Disponibilidade | Rate limiting, redundância |
+| **E**levation of Privilege | Autorização | Menor privilégio, RBAC |
 
-Interfaces administrativas.
-
-Quanto maior o número de serviços ativos, maior a superfície de ataque.
-
----
-
-## Criptografia inexistente
-
-Informações trafegam em texto puro.
-
-Qualquer atacante conectado à rede pode capturá-las.
-
----
-
-## APIs inseguras
-
-Aplicativos móveis frequentemente comunicam-se com APIs mal implementadas.
-
-Essas falhas permitem:
-
-- alteração de informações;
-- acesso a dispositivos de outros usuários;
-- execução remota de comandos.
+> **💡 Curiosidade:** Grande parte das vulnerabilidades pode ser classificada em mais de uma categoria do STRIDE.
 
 ---
 
-# Atenção
+## 10. MITRE ATT&CK for ICS
 
-Muitas invasões não ocorrem através do dispositivo.
-
-O atacante explora a infraestrutura em nuvem responsável por controlá-lo.
+O **MITRE ATT&CK** é uma das principais bases de conhecimento sobre técnicas usadas por atacantes. A versão **for ICS** documenta técnicas, procedimentos, ferramentas e comportamentos observados em ataques reais a ambientes industriais, permitindo que equipes de segurança desenvolvam defesas mais eficientes (*mapeamento de detecções e controles*).
 
 ---
 
-# 7. OWASP IoT Top 10
+## 11. Estudos de Caso
 
-A OWASP mantém uma lista das vulnerabilidades mais comuns encontradas em dispositivos IoT.
+### Stuxnet (2010)
 
-Entre elas:
+Sabotou centrífugas do programa nuclear iraniano. O malware modificava discretamente a velocidade das máquinas enquanto **apresentava informações falsas aos operadores**. Demonstrou que ataques cibernéticos podem causar **danos físicos** — e cruzou um *air gap* via pendrives USB.
 
-- senhas fracas;
-- interfaces inseguras;
-- serviços de rede desnecessários;
-- atualizações inseguras;
-- armazenamento inseguro;
-- privacidade insuficiente;
-- configuração inadequada;
-- falta de gerenciamento de dispositivos.
+### Triton / Trisis (2017)
 
-Essa lista tornou-se uma importante referência para fabricantes.
+Alvo: **Sistemas Instrumentados de Segurança (SIS)** de uma planta petroquímica. Objetivo: comprometer os mecanismos que evitam acidentes industriais — potencialmente colocando vidas em risco. Considerado um dos ataques mais sofisticados já identificados.
 
----
+### Industroyer / CrashOverride (2016)
 
-# 8. Modelagem de ameaças
+Especializado em **redes elétricas**, explorava protocolos industriais (IEC 60870, IEC 61850) para interromper o fornecimento de energia — associado a apagões na Ucrânia.
 
-Antes de proteger qualquer sistema é necessário compreender quais ameaças realmente existem.
-
-Esse processo recebe o nome de Threat Modeling.
-
-O objetivo consiste em responder perguntas como:
-
-- Quem pode atacar?
-- O que deseja obter?
-- Quais recursos possui?
-- Qual ativo precisa ser protegido?
-- Qual seria o impacto?
+> **🔍 Na prática:** Esses ataques demonstram que segurança industrial deixou de ser preocupação acadêmica e passou a ser **requisito essencial para infraestrutura crítica**.
 
 ---
 
-## Exemplo
+## 12. Como mitigar esses ataques?
 
-Dispositivo:
-
-Fechadura inteligente.
-
-Ativos:
-
-- chave digital;
-- histórico de acesso;
-- credenciais Wi-Fi.
-
-Possíveis atacantes:
-
-- criminosos;
-- invasores da rede doméstica;
-- funcionários mal-intencionados.
-
-Impactos:
-
-- invasão da residência;
-- espionagem;
-- indisponibilidade do equipamento.
-
----
-
-# 9. STRIDE
-
-O modelo STRIDE foi desenvolvido pela Microsoft.
-
-Ele organiza ameaças em seis categorias.
-
----
-
-## S — Spoofing
-
-Falsificação de identidade.
-
-Exemplo:
-
-Um invasor faz um servidor acreditar que é um sensor legítimo.
-
----
-
-## T — Tampering
-
-Alteração de dados.
-
-Exemplo:
-
-Modificar leituras de temperatura.
-
----
-
-## R — Repudiation
-
-Negação de ações.
-
-Usuário afirma não ter realizado determinada operação.
-
----
-
-## I — Information Disclosure
-
-Vazamento de informações.
-
-Exemplo:
-
-Captura de imagens de uma câmera IP.
-
----
-
-## D — Denial of Service
-
-Indisponibilidade.
-
-Ataques DDoS.
-
-Sobrecarga de dispositivos.
-
----
-
-## E — Elevation of Privilege
-
-Escalada de privilégios.
-
-Usuário comum obtém permissões administrativas.
-
----
-
-# Curiosidade
-
-Grande parte das vulnerabilidades pode ser classificada em mais de uma categoria do STRIDE.
-
----
-
-# 10. MITRE ATT&CK for ICS
-
-O MITRE ATT&CK tornou-se uma das principais bases de conhecimento sobre técnicas utilizadas por atacantes.
-
-Existe uma versão específica voltada para ambientes industriais.
-
-Ela documenta:
-
-- técnicas;
-- procedimentos;
-- ferramentas;
-- comportamentos observados em ataques reais.
-
-Isso permite que equipes de segurança desenvolvam defesas mais eficientes.
-
----
-
-# 11. Estudos de Caso
-
-## Stuxnet
-
-Descoberto em 2010.
-
-Objetivo:
-
-Sabotar centrífugas utilizadas no programa nuclear iraniano.
-
-O malware modificava discretamente a velocidade das máquinas enquanto apresentava informações falsas aos operadores.
-
-Esse incidente demonstrou que ataques cibernéticos podem causar danos físicos.
-
----
-
-## Triton
-
-Alvo:
-
-Sistemas instrumentados de segurança (Safety Instrumented Systems).
-
-Objetivo:
-
-Comprometer mecanismos responsáveis por evitar acidentes industriais.
-
-Foi considerado um dos ataques mais sofisticados já identificados.
-
----
-
-## Industroyer
-
-Especializado em redes elétricas.
-
-Explorava protocolos industriais para interromper o fornecimento de energia.
-
----
-
-# Na prática
-
-Esses ataques demonstram que segurança industrial deixou de ser uma preocupação exclusivamente acadêmica.
-
-Ela passou a representar um requisito essencial para infraestrutura crítica.
-
----
-
-# 12. Como mitigar esses ataques?
-
-Algumas boas práticas incluem:
+Nenhuma medida é suficiente isoladamente; a **combinação** delas (Defense in Depth) reduz a superfície de ataque:
 
 - eliminar senhas padrão;
-- utilizar autenticação multifator quando possível;
+- autenticação multifator quando possível;
 - aplicar atualizações regularmente;
 - segmentar redes;
 - utilizar TLS;
 - monitorar logs;
-- empregar autenticação baseada em certificados;
+- autenticação baseada em certificados;
 - desabilitar serviços desnecessários;
-- utilizar Secure Boot;
-- implementar Flash Encryption.
+- Secure Boot e Flash Encryption.
 
-Nenhuma dessas medidas é suficiente isoladamente.
+### Exemplo doméstico
 
-A combinação delas reduz significativamente a superfície de ataque.
-
----
-
-# Exemplo doméstico
-
-Casa Inteligente
-
-↓
-
-Roteador atualizado
-
-↓
-
-Rede Wi-Fi protegida
-
-↓
-
-Dispositivos utilizando TLS
-
-↓
-
-Senhas únicas
-
-↓
-
-Atualizações automáticas
-
-↓
-
-Risco significativamente reduzido
+```mermaid
+flowchart TD
+    R[Roteador atualizado] --> W[Wi-Fi protegido - WPA3]
+    W --> T[Dispositivos usando TLS]
+    T --> S[Senhas únicas por dispositivo]
+    S --> U[Atualizações automáticas]
+    U --> RES[✅ Risco significativamente reduzido]
+    style RES fill:#e8ffe8,stroke:#28a745
+```
 
 ---
 
-# Resumo do Volume
+## Resumo do Volume
 
-Neste capítulo estudamos os principais ataques observados em dispositivos IoT e ambientes industriais.
+Neste capítulo estudamos os principais ataques observados em dispositivos IoT e ambientes industriais. Foram apresentados os conceitos de botnet, DDoS, modelagem de ameaças e STRIDE, além de incidentes históricos como Mirai, Stuxnet, Triton e Industroyer.
 
-Foram apresentados os conceitos de botnet, DDoS, modelagem de ameaças e STRIDE, além de incidentes históricos como Mirai, Stuxnet, Triton e Industroyer.
-
-Também discutimos as vulnerabilidades frequentemente encontradas em dispositivos comerciais e as principais estratégias de mitigação recomendadas por organizações como OWASP, MITRE e NIST.
-
-Esses conhecimentos são fundamentais para compreender como ameaças reais exploram falhas aparentemente simples e por que a segurança deve ser considerada desde as primeiras etapas do desenvolvimento de dispositivos conectados.
+Também discutimos as vulnerabilidades frequentemente encontradas em dispositivos comerciais e as estratégias de mitigação recomendadas por OWASP, MITRE e NIST. Esses conhecimentos mostram como ameaças reais exploram falhas aparentemente simples e por que a segurança deve ser considerada desde as primeiras etapas do desenvolvimento.
 
 ---
 
-# Perguntas para discussão
+## Perguntas para discussão
 
 1. O maior problema do Mirai foi o malware ou os fabricantes?
-
 2. Senhas padrão ainda deveriam existir em dispositivos IoT?
-
-3. Qual a diferença entre um ataque DDoS convencional e um ataque realizado por uma botnet IoT?
-
+3. Qual a diferença entre um ataque DDoS convencional e um realizado por botnet IoT?
 4. Como a modelagem de ameaças auxilia o desenvolvimento de dispositivos mais seguros?
-
 5. Todo dispositivo conectado à Internet pode fazer parte de uma botnet?
 
 ---
 
-# Possíveis perguntas do professor
+## Possíveis perguntas do professor
 
-**O que diferencia uma botnet de um malware comum?**
-
-**Por que o Mirai conseguiu crescer tão rapidamente?**
-
-**Como o STRIDE auxilia no desenvolvimento seguro?**
-
-**Qual a importância do OWASP IoT Top 10?**
-
-**Por que Stuxnet é considerado um marco na história da cibersegurança?**
-
-**Quais medidas simples poderiam impedir boa parte das infecções por botnets?**
+- **O que diferencia uma botnet de um malware comum?**
+- **Por que o Mirai conseguiu crescer tão rapidamente?**
+- **Como o STRIDE auxilia no desenvolvimento seguro?**
+- **Qual a importância do OWASP IoT Top 10?**
+- **Por que Stuxnet é considerado um marco na história da cibersegurança?**
+- **Quais medidas simples poderiam impedir boa parte das infecções por botnets?**
 
 ---
 
-# Leituras recomendadas
+## Leituras recomendadas
 
-- OWASP IoT Project
+- OWASP IoT Project — *IoT Top 10 (2018)*
 - MITRE ATT&CK for ICS
-- Practical IoT Hacking
+- *Practical IoT Hacking* (No Starch Press)
 - NIST IR 8259
-- ENISA — Baseline Security Recommendations for IoT
+- ENISA — *Baseline Security Recommendations for IoT*
 
 ---
 

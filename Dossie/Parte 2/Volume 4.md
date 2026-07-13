@@ -1,19 +1,25 @@
-
 # Parte II
 
-# Volume IV — Segurança Industrial (IIoT), Arquitetura Purdue e Segmentação de Redes
+## Volume IV — Segurança Industrial (IIoT), Arquitetura Purdue e Segmentação de Redes
 
 ---
 
-# 1. Introdução
+## Mapa da Parte II
 
-Até este momento, os capítulos abordaram a segurança aplicada principalmente aos dispositivos IoT convencionais, como câmeras IP, sensores ambientais e dispositivos residenciais conectados.
+```mermaid
+flowchart LR
+    V4["Volume IV<br/>Segurança Industrial<br/>Purdue"] --> V5["Volume V<br/>Ataques Reais<br/>Botnets e STRIDE"]
+    V5 --> V6["Volume VI<br/>Cloud, APIs<br/>Observabilidade"]
+    V6 --> P3["Parte III<br/>Ciclo de Vida,<br/>Normas e Prática"]
+```
 
-Entretanto, existe um ramo da Internet das Coisas onde uma falha de segurança pode gerar impactos muito maiores: a **Industrial Internet of Things (IIoT)**.
+---
 
-Na IIoT, sensores e atuadores controlam processos físicos essenciais para a sociedade.
+## 1. Introdução
 
-Alguns exemplos incluem:
+Até este momento, os capítulos abordaram a segurança aplicada principalmente aos dispositivos IoT convencionais, como câmeras IP, sensores ambientais e dispositivos residenciais.
+
+Entretanto, existe um ramo da Internet das Coisas onde uma falha de segurança pode gerar impactos muito maiores: a **Industrial Internet of Things (IIoT)**. Nela, sensores e atuadores controlam processos físicos essenciais para a sociedade:
 
 - usinas hidrelétricas;
 - refinarias;
@@ -25,664 +31,287 @@ Alguns exemplos incluem:
 - tratamento de água;
 - plataformas de petróleo.
 
-Nesses ambientes, o objetivo da segurança deixa de ser apenas proteger dados.
-
-Ela passa a proteger pessoas, patrimônio, meio ambiente e continuidade operacional.
-
-Por esse motivo, diversas arquiteturas específicas foram desenvolvidas para separar sistemas críticos das redes corporativas e da Internet.
+Nesses ambientes, o objetivo da segurança deixa de ser apenas proteger dados e passa a proteger **pessoas, patrimônio, meio ambiente e continuidade operacional**. Por esse motivo, diversas arquiteturas específicas foram desenvolvidas para separar sistemas críticos das redes corporativas e da Internet.
 
 ---
 
-# Objetivos deste volume
+## Objetivos deste volume
 
 Ao final deste capítulo o estudante deverá compreender:
 
 - diferenças entre TI e OT;
-- conceitos de ICS;
+- conceitos de ICS (SCADA, PLC, RTU, DCS, IED);
 - funcionamento de sistemas SCADA;
 - arquitetura Purdue;
-- segmentação de redes industriais;
-- zonas e conduítes;
+- segmentação de redes industriais (zonas e conduítes);
 - protocolos industriais;
-- importância da disponibilidade em ambientes críticos.
+- a importância da disponibilidade em ambientes críticos.
 
 ---
 
-# 2. TI versus OT
+## 2. TI versus OT
 
-Um dos conceitos mais importantes da IIoT consiste em compreender que **Tecnologia da Informação (IT)** e **Tecnologia Operacional (OT)** possuem objetivos bastante diferentes.
+Um dos conceitos mais importantes da IIoT é compreender que **Tecnologia da Informação (TI)** e **Tecnologia Operacional (OT)** possuem objetivos diferentes — e, notavelmente, **prioridades invertidas na tríade CIA**.
 
-## Tecnologia da Informação (IT)
+```mermaid
+flowchart TD
+    subgraph TI["🖥️ TI — Tecnologia da Informação"]
+        direction TB
+        C1[1º Confidencialidade] --> I1[2º Integridade] --> D1[3º Disponibilidade]
+    end
+    subgraph OT["🏭 OT — Tecnologia Operacional"]
+        direction TB
+        D2[1º Disponibilidade] --> I2[2º Integridade] --> C2[3º Confidencialidade]
+    end
+    style TI fill:#e8f4ff,stroke:#0366d6
+    style OT fill:#fff3cd,stroke:#d39e00
+```
 
-Responsável pelo processamento de informações corporativas.
+| Aspecto | TI | OT |
+| --------- | ----- | ----- |
+| Prioridade máxima | Confidencialidade | Disponibilidade |
+| Exemplos | ERP, e-mail, bancos de dados | Motores, bombas, turbinas, válvulas |
+| Vida útil típica | 3–5 anos | 20–30 anos |
+| Atualização | Frequente, automática | Rara, planejada (janelas de parada) |
+| Reinicialização | Aceitável | Pode causar acidente |
 
-Exemplos:
-
-- servidores;
-- notebooks;
-- sistemas ERP;
-- bancos de dados;
-- e-mails;
-- aplicações web.
-
-Na TI, normalmente a prioridade é:
-
-Confidencialidade
-
-↓
-
-Integridade
-
-↓
-
-Disponibilidade
-
----
-
-## Tecnologia Operacional (OT)
-
-Responsável pelo controle de processos físicos.
-
-Exemplos:
-
-- motores;
-- bombas;
-- esteiras;
-- turbinas;
-- válvulas;
-- robôs industriais.
-
-Na OT, a prioridade normalmente é invertida.
-
-Disponibilidade
-
-↓
-
-Integridade
-
-↓
-
-Confidencialidade
+> **Exemplo:** perder acesso a um servidor de e-mail por alguns minutos gera atraso. Perder comunicação com o sistema que controla a pressão de uma caldeira pode resultar em acidente grave.
+> **💡 Curiosidade:** Muitos equipamentos industriais permanecem em funcionamento por 20 ou 30 anos. Ainda existem dispositivos usando sistemas operacionais e protocolos desenvolvidos décadas atrás.
 
 ---
 
-# Exemplo
+## 3. O que são ICS?
 
-Perder acesso a um servidor de e-mail durante alguns minutos normalmente gera apenas atraso.
+**ICS** (*Industrial Control Systems*) engloba os sistemas responsáveis pelo controle de processos industriais.
 
-Já perder comunicação com um sistema responsável por controlar a pressão de uma caldeira pode resultar em acidentes graves.
+| Componente | Nome | Função |
+| ----------- | ------ | -------- |
+| **PLC** | Programmable Logic Controller (CLP) | Executa lógica de controle em tempo real |
+| **RTU** | Remote Terminal Unit | Coleta dados de ativos distribuídos geograficamente |
+| **DCS** | Distributed Control System | Controle distribuído em grandes plantas |
+| **IED** | Intelligent Electronic Device | Relés e medidores inteligentes (setor elétrico) |
+| **SCADA** | Supervisory Control And Data Acquisition | Supervisão e aquisição de dados |
 
----
+### PLC (Programmable Logic Controller)
 
-# Curiosidade
+É um computador industrial extremamente robusto cuja função é executar lógica de controle. O ciclo pode ocorrer milhares de vezes por hora:
 
-Muitos equipamentos industriais permanecem em funcionamento durante vinte ou trinta anos.
+```mermaid
+flowchart LR
+    S1[Sensor detecta objeto] --> PLC[PLC recebe sinal]
+    PLC --> M[Motor inicia movimento]
+    M --> E[Esteira transporta peça]
+    E --> S2[Sensor confirma posição]
+    S2 --> PLC2[PLC encerra operação]
+    PLC2 -.->|próximo ciclo| S1
+```
 
-Isso significa que ainda existem dispositivos utilizando sistemas operacionais e protocolos desenvolvidos décadas atrás.
+### RTU, DCS e IED
 
----
-
-# 3. O que são ICS?
-
-ICS significa **Industrial Control Systems**.
-
-Esse termo engloba diversos sistemas responsáveis pelo controle de processos industriais.
-
-Entre eles:
-
-- SCADA;
-- PLC;
-- RTU;
-- DCS;
-- IED.
-
-Cada componente possui responsabilidades específicas.
-
----
-
-# PLC (Programmable Logic Controller)
-
-Também conhecido como CLP.
-
-É um computador industrial extremamente robusto.
-
-Sua função consiste em executar lógica de controle.
-
-Exemplo:
-
-Sensor detecta objeto
-
-↓
-
-PLC recebe sinal
-
-↓
-
-Motor inicia movimento
-
-↓
-
-Esteira transporta peça
-
-↓
-
-Sensor confirma posicionamento
-
-↓
-
-PLC encerra operação
-
-Esse ciclo pode ocorrer milhares de vezes por hora.
+- **RTU:** utilizada quando os equipamentos estão distribuídos geograficamente (subestações, oleodutos, estações meteorológicas, irrigação).
+- **DCS:** muito usado em refinarias e indústrias químicas; diversos controladores trabalham de forma distribuída, aumentando disponibilidade, redundância e escalabilidade.
+- **IED:** equipamentos inteligentes do setor elétrico (relés digitais, medidores inteligentes, controladores de proteção).
 
 ---
 
-# RTU (Remote Terminal Unit)
+## 4. O que é SCADA?
 
-As RTUs normalmente são utilizadas quando os equipamentos estão distribuídos geograficamente.
+**SCADA** (*Supervisory Control And Data Acquisition*) supervisiona processos, armazena históricos, emite alarmes e controla equipamentos remotamente.
 
-Exemplos:
+```mermaid
+flowchart TD
+    S[Sensores] --> PLC[PLC]
+    PLC --> RI[Rede Industrial]
+    RI --> SRV[Servidor SCADA]
+    SRV --> H[(Historian)]
+    SRV --> OP[Operador / IHM]
+    style H fill:#fff3cd,stroke:#d39e00
+```
 
-- subestações elétricas;
-- oleodutos;
-- estações meteorológicas;
-- sistemas de irrigação.
+### Historian
 
-Sua principal função consiste em coletar informações e transmiti-las para um centro de controle.
+O **Historian** é um banco de dados especializado em **séries temporais**, que armazena continuamente temperatura, pressão, corrente, tensão, vazão e velocidade. Esses dados permitem identificar falhas, gerar gráficos, prever manutenção e realizar auditorias.
 
----
-
-# DCS (Distributed Control System)
-
-Muito utilizado em refinarias e grandes indústrias químicas.
-
-Ao invés de um único controlador central, diversos controladores trabalham de forma distribuída.
-
-Isso aumenta:
-
-- disponibilidade;
-- redundância;
-- escalabilidade.
+> **🔍 Na prática:** Plataformas SCADA comuns incluem Ignition, Siemens WinCC, Elipse E3, FactoryTalk e AVEVA.
 
 ---
 
-# IED (Intelligent Electronic Device)
+## 5. A convergência entre TI e OT
 
-Equipamentos inteligentes encontrados principalmente no setor elétrico.
+Durante décadas, redes industriais permaneceram completamente isoladas — conceito conhecido como **Air Gap**. A premissa: se a rede não está conectada à Internet, ela é naturalmente segura.
 
-Exemplos:
+A **Indústria 4.0** modificou esse cenário. Hoje, gestores desejam visualizar indicadores de produção no smartphone, o que exige integração entre rede industrial, rede corporativa, nuvem e aplicativos. Embora útil, essa integração cria novos caminhos para ataques.
 
-- relés digitais;
-- medidores inteligentes;
-- controladores de proteção.
+```mermaid
+flowchart LR
+    A[Funcionário recebe<br/>e-mail malicioso] --> B[Notebook corporativo<br/>infectado]
+    B --> C[Malware alcança<br/>rede OT]
+    C --> D[PLC comprometido]
+    D --> E[Linha de produção<br/>interrompida]
+    style A fill:#e8f4ff,stroke:#0366d6
+    style E fill:#f8d7da,stroke:#dc3545
+```
 
----
-
-# 4. O que é SCADA?
-
-SCADA significa:
-
-**Supervisory Control And Data Acquisition**
-
-É um sistema responsável por:
-
-- supervisionar processos;
-- armazenar históricos;
-- emitir alarmes;
-- controlar equipamentos remotamente.
-
-Normalmente sua arquitetura possui os seguintes componentes:
-
-Sensores
-
-↓
-
-PLC
-
-↓
-
-Rede Industrial
-
-↓
-
-Servidor SCADA
-
-↓
-
-Historian
-
-↓
-
-Operador
+> **⚠️ Nota:** O ataque **Stuxnet** (2010) demonstrou que nem mesmo o *air gap* é garantia absoluta — a propagação ocorreu via pendrives USB (ver Volume V).
 
 ---
 
-# Historian
+## 6. Arquitetura Purdue
 
-O Historian é um banco de dados especializado em séries temporais.
+Para reduzir esses riscos surgiu o **Modelo Purdue** (Purdue Enterprise Reference Architecture — PERA), que organiza a infraestrutura industrial em níveis hierárquicos.
 
-Armazena continuamente informações como:
+```mermaid
+flowchart TD
+    N5["Nível 5 — Internet / Cloud / Serviços externos"]
+    N4["Nível 4 — Rede Corporativa (ERP, e-mail, AD)"]
+    DMZ["Nível 3.5 — DMZ Industrial 🛡️"]
+    N3["Nível 3 — Gerência da produção (MES, Historian)"]
+    N2["Nível 2 — Supervisão (SCADA, IHM)"]
+    N1["Nível 1 — Controladores (PLC, RTU, IED)"]
+    N0["Nível 0 — Processo físico (motores, sensores, válvulas)"]
+    N5 --- N4
+    N4 --- DMZ
+    DMZ --- N3
+    N3 --- N2
+    N2 --- N1
+    N1 --- N0
+    style DMZ fill:#fff3cd,stroke:#d39e00
+    style N0 fill:#e8f4ff,stroke:#0366d6
+```
 
-- temperatura;
-- pressão;
-- corrente elétrica;
-- tensão;
-- vazão;
-- velocidade.
+| Nível | Descrição | Exemplos |
+| ------- | ----------- | ---------- |
+| **0** | Processo físico | Motores, sensores, válvulas, atuadores |
+| **1** | Controle básico | PLC, RTU, IED |
+| **2** | Supervisão de área | SCADA, IHM, estações de operação |
+| **3** | Operações de manufatura | MES, servidores industriais, Historian |
+| **3.5** | **DMZ Industrial** | Camada de isolamento entre OT e TI |
+| **4** | Rede corporativa | ERP, e-mail, Active Directory |
+| **5** | Enterprise / Internet | Cloud, serviços externos |
 
-Esses dados permitem:
+### Importância da DMZ Industrial
 
-- identificar falhas;
-- gerar gráficos;
-- prever manutenção;
-- realizar auditorias.
+A DMZ atua como zona de isolamento: impede que um invasor acesse diretamente um PLC a partir da Internet. Todo acesso deve passar por autenticação, inspeção e controle adicionais.
 
----
-
-# Na prática
-
-Diversos sistemas SCADA utilizam plataformas como:
-
-- Ignition
-- WinCC
-- Elipse E3
-- FactoryTalk
-- AVEVA
-
----
-
-# 5. A convergência entre TI e OT
-
-Durante décadas, redes industriais permaneceram completamente isoladas.
-
-Esse conceito era conhecido como **Air Gap**.
-
-A ideia era simples.
-
-Se a rede não estivesse conectada à Internet, ela seria naturalmente segura.
-
-Entretanto, a Indústria 4.0 modificou completamente esse cenário.
-
-Hoje é comum que gestores desejem visualizar indicadores da produção diretamente em seus smartphones.
-
-Isso exige integração entre:
-
-Rede Industrial
-
-↓
-
-Rede Corporativa
-
-↓
-
-Cloud
-
-↓
-
-Aplicativos
-
-Embora extremamente útil, essa integração cria novos caminhos para ataques.
+> **⚠️ Atenção:** Uma boa arquitetura **nunca** permite comunicação direta entre um PLC e a Internet pública.
 
 ---
 
-# Exemplo
+## 7. Segmentação de Redes
 
-Funcionário recebe e-mail malicioso
+Um princípio fundamental da segurança industrial é a **segmentação**: nem todos os dispositivos devem conversar entre si. A rede é dividida em pequenas **zonas**, e a comunicação entre elas passa por **conduítes** controlados (terminologia da ISA/IEC 62443).
 
-↓
+```mermaid
+flowchart TD
+    RA[Rede Administrativa] --> FW1[🔥 Firewall]
+    FW1 --> DMZ[DMZ]
+    DMZ --> FW2[🔥 Firewall Industrial]
+    FW2 --> SCADA[Rede SCADA]
+    SCADA --> FW3[🔥 Firewall]
+    FW3 --> PLC[Rede de PLCs]
+    style FW1 fill:#f8d7da,stroke:#dc3545
+    style FW2 fill:#f8d7da,stroke:#dc3545
+    style FW3 fill:#f8d7da,stroke:#dc3545
+```
 
-Notebook corporativo infectado
+Caso um computador seja comprometido, o atacante encontrará **diversas barreiras** antes de alcançar os controladores — princípio de **Defense in Depth**.
 
-↓
+### Firewalls industriais
 
-Malware alcança rede OT
-
-↓
-
-PLC comprometido
-
-↓
-
-Linha de produção interrompida
-
----
-
-# 6. Arquitetura Purdue
-
-Para reduzir esses riscos surgiu o **Modelo Purdue**.
-
-Ele organiza a infraestrutura industrial em diferentes níveis.
+Semelhantes aos tradicionais, mas **compreendem protocolos industriais** (Modbus, DNP3, EtherNet/IP, PROFINET). Isso permite identificar comandos potencialmente perigosos — por exemplo, uma tentativa de escrita em registradores Modbus — e bloqueá-los automaticamente (*Deep Packet Inspection* industrial).
 
 ---
 
-## Nível 0
-
-Processo físico.
-
-Exemplos:
-
-- motores;
-- sensores;
-- válvulas;
-- atuadores.
-
----
-
-## Nível 1
-
-Controladores.
-
-Exemplos:
-
-- PLC;
-- RTU;
-- IED.
-
----
-
-## Nível 2
-
-Supervisão.
-
-Exemplos:
-
-- SCADA;
-- IHMs;
-- estações de operação.
-
----
-
-## Nível 3
-
-Gerenciamento da produção.
-
-Exemplos:
-
-- MES;
-- servidores industriais;
-- Historian.
-
----
-
-## Nível 3.5
-
-DMZ Industrial.
-
-Camada intermediária.
-
-Impede comunicação direta entre fábrica e Internet.
-
----
-
-## Nível 4
-
-Rede corporativa.
-
-ERP
-
-Servidores
-
-Correio eletrônico
-
-Active Directory
-
----
-
-## Nível 5
-
-Internet
-
-Cloud
-
-Serviços externos
-
----
-
-# Importância da DMZ Industrial
-
-A DMZ atua como uma zona de isolamento.
-
-Ela impede que um invasor consiga acessar diretamente um PLC a partir da Internet.
-
-Todo acesso deve passar por mecanismos adicionais de autenticação, inspeção e controle.
-
----
-
-# Atenção
-
-Uma boa arquitetura nunca permite comunicação direta entre um PLC e a Internet pública.
-
----
-
-# 7. Segmentação de Redes
-
-Um dos princípios fundamentais da segurança industrial consiste na segmentação.
-
-Nem todos os dispositivos devem conversar entre si.
-
-A rede é dividida em pequenas zonas.
-
-Cada zona possui regras específicas.
-
-Exemplo:
-
-Rede administrativa
-
-↓
-
-Firewall
-
-↓
-
-DMZ
-
-↓
-
-Firewall Industrial
-
-↓
-
-Rede SCADA
-
-↓
-
-Firewall
-
-↓
-
-Rede PLC
-
-Caso um computador seja comprometido, o atacante encontrará diversas barreiras antes de alcançar os controladores.
-
----
-
-# Firewalls Industriais
-
-Embora semelhantes aos firewalls tradicionais, esses equipamentos compreendem protocolos industriais.
-
-Exemplos:
-
-- Modbus
-- DNP3
-- EtherNet/IP
-- PROFINET
-
-Isso permite identificar comandos potencialmente perigosos.
-
----
-
-# Curiosidade
-
-Diversos firewalls industriais conseguem identificar tentativas de escrita em registradores Modbus e bloqueá-las automaticamente.
-
----
-
-# 8. Protocolos Industriais
-
-Grande parte da infraestrutura industrial ainda utiliza protocolos antigos.
-
-Entre eles:
-
-- Modbus
-- DNP3
-- PROFIBUS
-- EtherNet/IP
-- HART
-
-Muitos desses protocolos foram desenvolvidos quando praticamente não existiam ameaças cibernéticas.
-
-Consequentemente:
-
-- não possuem autenticação;
-- não possuem criptografia;
-- não verificam integridade.
-
----
-
-# Exemplo
-
-Controlador
-
-↓
-
-Recebe comando Modbus
-
-↓
-
-Não verifica identidade
-
-↓
-
-Executa imediatamente
+## 8. Protocolos Industriais
+
+Grande parte da infraestrutura ainda utiliza protocolos antigos: **Modbus, DNP3, PROFIBUS, EtherNet/IP e HART**. Muitos foram desenvolvidos quando praticamente não existiam ameaças cibernéticas e, por isso, **não possuem autenticação, criptografia ou verificação de integridade**.
+
+```mermaid
+flowchart LR
+    C[Controlador] --> R[Recebe comando Modbus]
+    R --> N[Não verifica identidade]
+    N --> X[Executa imediatamente]
+    style X fill:#f8d7da,stroke:#dc3545
+```
 
 Essa característica representa um dos maiores desafios da cibersegurança industrial.
 
 ---
 
-# 9. ISA/IEC 62443
+## 9. ISA/IEC 62443
 
-A série ISA/IEC 62443 é considerada atualmente uma das principais normas internacionais para segurança de sistemas industriais.
-
-Ela estabelece diretrizes para:
-
-- fabricantes;
-- integradores;
-- operadores;
-- desenvolvedores.
+A série **ISA/IEC 62443** é considerada a principal norma internacional para segurança de sistemas industriais. Estabelece diretrizes para fabricantes, integradores, operadores e desenvolvedores.
 
 Entre seus princípios destacam-se:
 
-- Defense in Depth;
-- segmentação;
+- **Defense in Depth** (defesa em profundidade);
+- segmentação (zonas e conduítes);
 - autenticação;
 - gerenciamento de riscos;
 - atualização segura;
 - monitoramento contínuo.
 
----
-
-# 10. Disponibilidade acima de tudo
-
-Na computação tradicional, um servidor pode ser reiniciado durante a madrugada.
-
-Na indústria isso nem sempre é possível.
-
-Muitos processos funcionam continuamente.
-
-Exemplos:
-
-- refinarias;
-- siderúrgicas;
-- hospitais;
-- usinas.
-
-Uma interrupção inesperada pode causar:
-
-- prejuízos milionários;
-- danos ambientais;
-- acidentes.
-
-Por isso atualizações de segurança frequentemente precisam ser cuidadosamente planejadas.
+A norma também define **Security Levels (SL 1–4)**, que graduam a robustez exigida conforme a capacidade do atacante que se deseja resistir (desde violação casual até adversário com recursos de Estado-nação).
 
 ---
 
-# Exemplo Industrial
+## 10. Disponibilidade acima de tudo
 
-Imagine uma usina hidrelétrica.
+Na computação tradicional, um servidor pode ser reiniciado de madrugada. Na indústria isso nem sempre é possível: muitos processos funcionam **continuamente** (refinarias, siderúrgicas, hospitais, usinas). Uma interrupção inesperada pode causar prejuízos milionários, danos ambientais e acidentes.
 
-Um sensor mede continuamente o nível da água.
+Por isso, atualizações de segurança frequentemente precisam ser **cuidadosamente planejadas** em janelas de manutenção.
 
-↓
+### Exemplo Industrial — usina hidrelétrica
 
-PLC calcula abertura das comportas.
+```mermaid
+flowchart TD
+    S[Sensor mede nível da água] --> PLC[PLC calcula abertura das comportas]
+    PLC --> A[Atuadores movimentam comportas]
+    A --> SC[SCADA acompanha operação]
+    SC --> H[(Historian registra medições)]
+    H --> CO[Centro de operação supervisiona]
+    ATK[⚠️ Sensor comprometido] -.->|leitura falsa| PLC
+    style ATK fill:#f8d7da,stroke:#dc3545
+```
 
-↓
-
-Atuadores movimentam as comportas.
-
-↓
-
-SCADA acompanha toda operação.
-
-↓
-
-Historian registra milhares de medições.
-
-↓
-
-Centro de operação supervisiona o processo.
-
-Caso um invasor modifique as leituras do sensor, todas as decisões seguintes poderão ser comprometidas.
-
-Esse exemplo demonstra como um simples dispositivo IoT pode influenciar um sistema inteiro.
+Caso um invasor modifique as leituras do sensor, **todas as decisões seguintes** poderão ser comprometidas. Esse exemplo demonstra como um simples dispositivo IoT pode influenciar um sistema inteiro.
 
 ---
 
-# Resumo do Volume
+## Resumo do Volume
 
-Neste capítulo foram apresentados os principais conceitos relacionados à segurança em ambientes industriais.
+Neste capítulo foram apresentados os principais conceitos de segurança em ambientes industriais. Discutimos as diferenças entre TI e OT, os componentes dos sistemas ICS, o funcionamento de arquiteturas SCADA e a importância do Modelo Purdue como estratégia de segmentação.
 
-Discutimos as diferenças entre TI e OT, os componentes dos sistemas ICS, o funcionamento de arquiteturas SCADA e a importância do Modelo Purdue como estratégia de segmentação.
-
-Também foram abordados os desafios impostos pelos protocolos industriais legados e pelas exigências de disponibilidade contínua presentes em infraestruturas críticas.
-
-Esses conceitos constituem a base para compreender os ataques reais estudados no próximo volume.
+Também foram abordados os desafios impostos pelos protocolos industriais legados e pelas exigências de disponibilidade contínua presentes em infraestruturas críticas. Esses conceitos constituem a base para compreender os ataques reais estudados no próximo volume.
 
 ---
 
-# Perguntas para discussão
+## Perguntas para discussão
 
 1. O modelo Air Gap ainda é suficiente para proteger ambientes industriais?
-
 2. Por que disponibilidade possui prioridade sobre confidencialidade em OT?
-
 3. Vale a pena substituir imediatamente todos os protocolos industriais antigos?
-
 4. Como a segmentação reduz o impacto de um ataque?
-
 5. Quais seriam as consequências da conexão direta entre um PLC e a Internet?
 
 ---
 
-# Possíveis perguntas do professor
+## Possíveis perguntas do professor
 
-**Qual a principal diferença entre TI e OT?**
-
-**Por que o Modelo Purdue continua sendo amplamente utilizado?**
-
-**Qual a função da DMZ Industrial?**
-
-**O que diferencia um firewall industrial de um firewall convencional?**
-
-**Por que protocolos como Modbus ainda são utilizados mesmo apresentando limitações de segurança?**
+- **Qual a principal diferença entre TI e OT?**
+- **Por que o Modelo Purdue continua sendo amplamente utilizado?**
+- **Qual a função da DMZ Industrial?**
+- **O que diferencia um firewall industrial de um firewall convencional?**
+- **Por que protocolos como Modbus ainda são utilizados mesmo apresentando limitações de segurança?**
 
 ---
 
-# Leituras recomendadas
+## Leituras recomendadas
 
 - ISA/IEC 62443 Series
-- NIST SP 800-82 — Guide to Industrial Control Systems Security
+- NIST SP 800-82 Rev. 3 — *Guide to Operational Technology (OT) Security*
 - MITRE ATT&CK for ICS
-- Security Engineering — Ross Anderson
+- Ross Anderson — *Security Engineering*
 
 ---
 

@@ -1,482 +1,151 @@
-
 # Volume IX — Estudos de Caso, Cenários Reais e Aplicações Práticas em IoT e IIoT
 
 ---
 
-# 1. Introdução
+## 1. Introdução
 
-Após compreender os conceitos fundamentais, os mecanismos de segurança, os ataques e as normas internacionais, torna-se importante observar como essas tecnologias são aplicadas no mundo real.
+Após compreender conceitos fundamentais, mecanismos de segurança, ataques e normas, torna-se importante observar como essas tecnologias se aplicam no mundo real.
 
-Os estudos de caso apresentados neste capítulo possuem dois objetivos principais.
-
-O primeiro é demonstrar como diferentes setores utilizam dispositivos IoT.
-
-O segundo é analisar quais riscos surgem em cada cenário e quais mecanismos de segurança devem ser empregados.
-
-Essa abordagem permite desenvolver uma visão crítica, extremamente importante para profissionais de Engenharia de Computação, Segurança da Informação e Sistemas Embarcados.
+Os estudos de caso deste capítulo têm dois objetivos: (1) demonstrar como diferentes setores utilizam IoT; (2) analisar quais riscos surgem em cada cenário e quais mecanismos de segurança devem ser empregados. Essa abordagem desenvolve a visão crítica essencial a profissionais de Engenharia de Computação, Segurança da Informação e Sistemas Embarcados.
 
 ---
 
-# Objetivos deste volume
+## Objetivos deste volume
 
-Ao final deste capítulo o estudante deverá compreender:
-
-- aplicações reais de IoT;
-- ameaças específicas de cada setor;
-- consequências de ataques;
-- estratégias de mitigação;
-- relação entre teoria e prática;
-- importância da análise de risco.
+Compreender: aplicações reais de IoT, ameaças específicas de cada setor, consequências de ataques, estratégias de mitigação, relação entre teoria e prática e importância da análise de risco.
 
 ---
 
-# Estudo de Caso 1 — Casa Inteligente (Smart Home)
+## Estudo de Caso 1 — Casa Inteligente (Smart Home)
 
-## Cenário
+**Cenário:** uma residência com fechadura inteligente, câmera IP, lâmpadas, Smart TV, assistente virtual, tomadas inteligentes, sensores de presença e roteador Wi-Fi — todos na mesma rede.
 
-Uma residência moderna possui diversos dispositivos conectados:
+| Aspecto | Análise |
+| --------- | --------- |
+| **Benefícios** | Automação, conforto, economia de energia, monitoramento remoto |
+| **Riscos** | Senhas padrão, Wi-Fi mal configurado, firmware desatualizado, APIs inseguras |
+| **Consequências** | Espionagem, invasão, desligamento de alarmes, vazamento de imagens, botnets |
+| **Mitigações** | WPA3, autenticação forte, atualização automática, **VLAN exclusiva para IoT**, desativar serviços desnecessários |
 
-- fechadura inteligente;
-- câmera IP;
-- lâmpadas inteligentes;
-- Smart TV;
-- assistente virtual;
-- tomadas inteligentes;
-- sensores de presença;
-- roteador Wi-Fi.
+### Segmentação recomendada
 
-Todos esses equipamentos compartilham a mesma rede doméstica.
-
----
-
-## Benefícios
-
-- automação;
-- conforto;
-- economia de energia;
-- monitoramento remoto;
-- integração entre dispositivos.
-
----
-
-## Principais riscos
-
-Um atacante pode explorar:
-
-- senhas padrão;
-- Wi-Fi mal configurado;
-- firmware desatualizado;
-- APIs inseguras;
-- dispositivos sem criptografia.
-
----
-
-## Possíveis consequências
-
-- espionagem;
-- invasão da residência;
-- desligamento de alarmes;
-- vazamento de imagens;
-- participação em botnets.
-
----
-
-## Mitigações
-
-- WPA3;
-- autenticação forte;
-- atualização automática;
-- VLAN exclusiva para IoT;
-- desativação de serviços desnecessários;
-- autenticação baseada em certificados quando possível.
-
----
-
-# Na prática
-
-Uma boa arquitetura residencial normalmente separa:
-
-Rede principal
-
-↓
-
-Notebook
-
-↓
-
-Smartphone
-
-↓
-
-Computador
-
----
-
-Rede IoT
-
-↓
-
-Câmeras
-
-↓
-
-Lâmpadas
-
-↓
-
-Tomadas
-
-↓
-
-Sensores
+```mermaid
+flowchart TD
+    R[Roteador] --> P[Rede Principal]
+    R --> IOT[Rede IoT - VLAN isolada]
+    P --> N[Notebook]
+    P --> SM[Smartphone]
+    P --> PC[Computador]
+    IOT --> CAM[Câmeras]
+    IOT --> LP[Lâmpadas]
+    IOT --> TM[Tomadas]
+    IOT --> SN[Sensores]
+    style IOT fill:#fff3cd,stroke:#d39e00
+    style P fill:#e8f4ff,stroke:#0366d6
+```
 
 Essa segmentação reduz significativamente os impactos caso um dispositivo seja comprometido.
 
 ---
 
-# Estudo de Caso 2 — Agricultura Inteligente
+## Estudo de Caso 2 — Agricultura Inteligente
 
-## Cenário
+**Cenário:** fazenda com sensores de umidade, temperatura, luminosidade, vento e irrigação, transmitindo via **LoRaWAN** para um gateway e, então, para a nuvem.
 
-Uma fazenda utiliza sensores distribuídos para monitorar:
+| Aspecto | Análise |
+| --------- | --------- |
+| **Benefícios** | Economia de água, aumento de produtividade, previsão climática, irrigação automática |
+| **Ameaças** | Alterar leituras, impedir comunicação, provocar irrigação inadequada, comprometer gateways |
+| **Consequências** | Perda da produção, desperdício de água, prejuízo financeiro |
+| **Boas práticas** | Autenticação sensor↔gateway, redundância, monitoramento, Edge Computing |
 
-- umidade;
-- temperatura;
-- luminosidade;
-- velocidade do vento;
-- irrigação.
-
-As informações são transmitidas para um gateway utilizando LoRaWAN.
-
-Posteriormente seguem para a nuvem.
+> **💡 Curiosidade:** Grandes fazendas podem possuir **milhares de sensores** distribuídos por dezenas de quilômetros — o que torna LoRaWAN (longo alcance, baixo consumo) especialmente adequado.
 
 ---
 
-## Benefícios
+## Estudo de Caso 3 — Hospital Inteligente
 
-- economia de água;
-- aumento da produtividade;
-- previsão climática;
-- automação da irrigação.
+**Cenário:** hospital com bombas de infusão, monitores cardíacos, respiradores, rastreamento de equipamentos e controle de temperatura.
 
----
+**Desafio central:** a **disponibilidade** torna-se crítica — interromper um equipamento pode colocar vidas em risco.
 
-## Ameaças
+| Aspecto | Análise |
+| --------- | --------- |
+| **Ataques possíveis** | Ransomware, alteração de parâmetros, indisponibilidade, acesso não autorizado |
+| **Consequências** | Atraso em atendimentos, perda de informações, **riscos à vida** |
+| **Mitigações** | Segmentação de redes, autenticação forte, monitoramento, redundância, backups, atualização controlada |
 
-Um atacante pode:
-
-- alterar leituras;
-- impedir comunicação;
-- provocar irrigação inadequada;
-- comprometer gateways.
+> **⚠️ Atenção:** Em hospitais, **segurança da informação e segurança do paciente caminham juntas** — um conceito de convergência *safety/security*.
 
 ---
 
-## Consequências
+## Estudo de Caso 4 — Cidade Inteligente
 
-- perda da produção;
-- desperdício de água;
-- prejuízo financeiro.
+**Cenário:** prefeitura controlando iluminação pública, semáforos, estacionamento, sensores ambientais e monitoramento urbano.
 
----
-
-## Boas práticas
-
-- autenticação entre sensores e gateway;
-- redundância;
-- monitoramento contínuo;
-- Edge Computing.
+| Aspecto | Análise |
+| --------- | --------- |
+| **Benefícios** | Economia de energia, mobilidade, monitoramento ambiental, resposta rápida |
+| **Riscos** | Congestionamentos, apagões, indisponibilidade de serviços, coleta indevida de dados |
+| **Estratégias** | Autenticação por certificados, segmentação, SIEM, SOC, criptografia ponta a ponta |
 
 ---
 
-# Curiosidade
+## Estudo de Caso 5 — Indústria 4.0
 
-Grandes fazendas podem possuir milhares de sensores distribuídos em dezenas de quilômetros.
+**Cenário:** fábrica automatizada com PLCs, sensores, robôs, SCADA, Historian, MES e ERP integrados.
 
----
-
-# Estudo de Caso 3 — Hospital Inteligente
-
-## Cenário
-
-Um hospital moderno utiliza dispositivos IoT em:
-
-- bombas de infusão;
-- monitores cardíacos;
-- respiradores;
-- rastreamento de equipamentos;
-- controle de temperatura.
+| Aspecto | Análise |
+| --------- | --------- |
+| **Benefícios** | Manutenção preditiva, produtividade, redução de desperdícios, tempo real |
+| **Ameaças** | Ransomware, movimentação lateral, ataques a PLCs, sabotagem, alteração de sensores |
+| **Consequências** | Interrupção da produção, perdas financeiras, acidentes, danos ambientais |
+| **Mitigações** | Modelo Purdue, ISA/IEC 62443, DMZ Industrial, autenticação, segmentação |
 
 ---
 
-## Desafio
+## Estudo de Caso 6 — Veículos Conectados
 
-Nesse ambiente, disponibilidade torna-se extremamente crítica.
+**Cenário:** automóveis com dezenas de ECUs, GPS, sensores, radares, câmeras e módulos LTE em comunicação contínua (barramento **CAN**).
 
-Interromper o funcionamento de um equipamento pode colocar vidas em risco.
+| Aspecto | Análise |
+| --------- | --------- |
+| **Benefícios** | Assistência ao motorista, navegação, diagnósticos remotos, OTA |
+| **Ameaças** | Comprometimento remoto, alteração de comandos, espionagem, rastreamento |
+| **Mitigações** | Secure Boot, barramentos protegidos, autenticação, atualizações assinadas |
 
----
-
-## Possíveis ataques
-
-- ransomware;
-- alteração de parâmetros;
-- indisponibilidade;
-- acesso não autorizado.
+> **🔍 Contexto:** A norma **ISO/SAE 21434** (Cybersecurity for road vehicles) e o regulamento **UNECE R155** tornaram a cibersegurança veicular requisito regulatório para homologação.
 
 ---
 
-## Consequências
+## Estudo de Caso 7 — Redes Elétricas Inteligentes (Smart Grid)
 
-- atraso em atendimentos;
-- perda de informações;
-- riscos à vida.
+**Cenário:** medidores inteligentes, sensores, relés digitais e SCADA.
 
----
-
-## Mitigações
-
-- segmentação de redes;
-- autenticação forte;
-- monitoramento;
-- redundância;
-- backups;
-- atualização controlada.
+| Aspecto | Análise |
+| --------- | --------- |
+| **Benefícios** | Melhor distribuição, identificação de falhas, redução de perdas |
+| **Ameaças** | Fraude em medidores, interrupção do fornecimento, alteração de medições |
+| **Consequências** | Prejuízos econômicos, apagões, instabilidade energética |
 
 ---
 
-# Atenção
+## Estudo de Caso 8 — Logística Inteligente
 
-Em hospitais, segurança da informação e segurança do paciente caminham juntas.
+**Cenário:** monitoramento de caminhões, contêineres, cargas, temperatura e localização.
 
----
-
-# Estudo de Caso 4 — Cidade Inteligente
-
-## Cenário
-
-Uma prefeitura utiliza IoT para controlar:
-
-- iluminação pública;
-- semáforos;
-- estacionamento;
-- sensores ambientais;
-- monitoramento urbano.
+| Aspecto | Análise |
+| --------- | --------- |
+| **Benefícios** | Rastreamento, redução de perdas, monitoramento em tempo real |
+| **Riscos** | Falsificação de localização (GPS spoofing), perda de rastreamento, roubo |
+| **Mitigações** | GPS autenticado, criptografia, redundância, Edge Analytics |
 
 ---
 
-## Benefícios
+## Comparação entre cenários
 
-- economia de energia;
-- melhoria da mobilidade;
-- monitoramento ambiental;
-- resposta rápida a incidentes.
-
----
-
-## Riscos
-
-Ataques podem provocar:
-
-- congestionamentos;
-- apagões;
-- indisponibilidade de serviços;
-- coleta indevida de informações.
-
----
-
-## Estratégias
-
-- autenticação baseada em certificados;
-- segmentação;
-- SIEM;
-- SOC;
-- criptografia ponta a ponta.
-
----
-
-# Estudo de Caso 5 — Indústria 4.0
-
-## Cenário
-
-Uma fábrica automatizada possui:
-
-- PLCs;
-- sensores;
-- robôs;
-- SCADA;
-- Historian;
-- MES;
-- ERP.
-
-Todos integrados.
-
----
-
-## Benefícios
-
-- manutenção preditiva;
-- aumento da produtividade;
-- redução de desperdícios;
-- monitoramento em tempo real.
-
----
-
-## Ameaças
-
-- ransomware;
-- movimentação lateral;
-- ataques a PLCs;
-- sabotagem;
-- alteração de sensores.
-
----
-
-## Consequências
-
-- interrupção da produção;
-- perdas financeiras;
-- acidentes;
-- danos ambientais.
-
----
-
-## Mitigações
-
-- Modelo Purdue;
-- ISA/IEC 62443;
-- DMZ Industrial;
-- autenticação;
-- segmentação.
-
----
-
-# Estudo de Caso 6 — Veículos Conectados
-
-## Cenário
-
-Automóveis modernos possuem dezenas de computadores embarcados.
-
-Entre eles:
-
-- ECU;
-- GPS;
-- sensores;
-- radares;
-- câmeras;
-- módulos LTE.
-
-Todos comunicam-se continuamente.
-
----
-
-## Benefícios
-
-- assistência ao motorista;
-- navegação;
-- diagnósticos remotos;
-- atualizações OTA.
-
----
-
-## Ameaças
-
-- comprometimento remoto;
-- alteração de comandos;
-- espionagem;
-- rastreamento indevido.
-
----
-
-## Mitigações
-
-- Secure Boot;
-- barramentos protegidos;
-- autenticação;
-- atualizações assinadas.
-
----
-
-# Estudo de Caso 7 — Redes Elétricas Inteligentes
-
-## Cenário
-
-Uma Smart Grid utiliza:
-
-- medidores inteligentes;
-- sensores;
-- relés digitais;
-- SCADA.
-
----
-
-## Benefícios
-
-- melhor distribuição;
-- identificação de falhas;
-- redução de perdas.
-
----
-
-## Ameaças
-
-- fraude em medidores;
-- interrupção do fornecimento;
-- alteração de medições.
-
----
-
-## Consequências
-
-- prejuízos econômicos;
-- apagões;
-- instabilidade energética.
-
----
-
-# Estudo de Caso 8 — Logística Inteligente
-
-## Cenário
-
-Empresas monitoram:
-
-- caminhões;
-- contêineres;
-- cargas;
-- temperatura;
-- localização.
-
----
-
-## Benefícios
-
-- rastreamento;
-- redução de perdas;
-- monitoramento em tempo real.
-
----
-
-## Riscos
-
-- falsificação de localização;
-- perda de rastreamento;
-- roubo de mercadorias.
-
----
-
-## Mitigações
-
-- GPS autenticado;
-- criptografia;
-- redundância;
-- Edge Analytics.
-
----
-
-# Comparação entre cenários
-
-| Ambiente | Principal Prioridade | Maior Risco |
-|-----------|----------------------|-------------|
+| Ambiente | Prioridade principal | Maior risco |
+| ----------- | ---------------------- | ------------- |
 | Casa Inteligente | Privacidade | Invasão doméstica |
 | Hospital | Disponibilidade | Risco à vida |
 | Agricultura | Continuidade | Perda da produção |
@@ -487,121 +156,69 @@ Empresas monitoram:
 
 ---
 
-# Como analisar um cenário IoT
+## Como analisar um cenário IoT
 
-Sempre responda às seguintes perguntas:
+Uma metodologia usada em praticamente todas as análises profissionais responde cinco perguntas:
 
-## 1.
+```mermaid
+flowchart TD
+    Q1[1. Quais ativos precisam ser protegidos?] --> Q2[2. Quem pode atacar?]
+    Q2 --> Q3[3. Como esse ataque ocorreria?]
+    Q3 --> Q4[4. Quais seriam as consequências?]
+    Q4 --> Q5[5. Como reduzir esse risco?]
+    Q5 -.->|reavaliação contínua| Q1
+    style Q1 fill:#e8f4ff,stroke:#0366d6
+    style Q5 fill:#e8ffe8,stroke:#28a745
+```
 
-Quais ativos precisam ser protegidos?
+### Estudo de caso integrador
 
----
-
-## 2.
-
-Quem pode atacar?
-
----
-
-## 3.
-
-Como esse ataque ocorreria?
-
----
-
-## 4.
-
-Quais seriam as consequências?
-
----
-
-## 5.
-
-Como reduzir esse risco?
-
----
-
-Essa metodologia é utilizada em praticamente todas as análises profissionais.
-
----
-
-# Estudo de caso integrador
-
-Imagine uma residência inteligente composta por:
-
-- roteador Wi-Fi;
-- câmera IP;
-- fechadura eletrônica;
-- assistente virtual;
-- Smart TV;
-- sensor de fumaça;
-- iluminação inteligente.
-
-Perguntas para análise:
+Considere uma residência inteligente com roteador Wi-Fi, câmera IP, fechadura eletrônica, assistente virtual, Smart TV, sensor de fumaça e iluminação inteligente. Perguntas de análise:
 
 - Qual dispositivo representa maior risco?
-
 - Todos deveriam permanecer na mesma rede?
-
 - O que aconteceria caso a câmera fosse comprometida?
-
 - Como impedir que ela participe de uma botnet?
-
 - Como proteger a privacidade dos moradores?
 
-Esse tipo de exercício é bastante utilizado em disciplinas de Segurança da Informação.
+---
+
+## Resumo do Volume
+
+Foram apresentados diversos cenários reais de IoT e IIoT. Os estudos demonstraram que cada ambiente possui requisitos específicos: residências priorizam privacidade, hospitais enfatizam disponibilidade, indústrias concentram-se na continuidade operacional e cidades inteligentes equilibram segurança, desempenho e escalabilidade.
+
+Independentemente do cenário, os princípios fundamentais permanecem: autenticação forte, criptografia, monitoramento contínuo, segmentação de redes, atualização segura e análise constante de riscos.
 
 ---
 
-# Resumo do Volume
+## Perguntas para discussão
 
-Neste capítulo foram apresentados diversos cenários reais envolvendo IoT e IIoT.
-
-Os estudos demonstraram que cada ambiente possui requisitos específicos de segurança.
-
-Enquanto residências priorizam privacidade, hospitais enfatizam disponibilidade, indústrias concentram esforços na continuidade operacional e cidades inteligentes precisam equilibrar segurança, desempenho e escalabilidade.
-
-Independentemente do cenário, os princípios fundamentais permanecem os mesmos: autenticação forte, criptografia, monitoramento contínuo, segmentação de redes, atualização segura e análise constante de riscos.
-
----
-
-# Perguntas para discussão
-
-1. Qual dos cenários estudados apresenta maior impacto potencial em caso de ataque?
-
+1. Qual dos cenários apresenta maior impacto potencial em caso de ataque?
 2. A segurança de uma casa inteligente depende apenas dos dispositivos?
-
 3. Como Edge Computing pode beneficiar hospitais?
-
 4. Quais seriam os maiores desafios para proteger uma cidade inteligente?
-
 5. Por que diferentes ambientes priorizam diferentes requisitos de segurança?
 
 ---
 
-# Possíveis perguntas do professor
+## Possíveis perguntas do professor
 
-**Qual a principal diferença entre IoT residencial e IIoT?**
-
-**Por que hospitais possuem requisitos de segurança tão rigorosos?**
-
-**Como segmentação de redes pode proteger uma residência inteligente?**
-
-**Qual a importância da Edge Computing em ambientes agrícolas?**
-
-**Por que veículos conectados necessitam de atualizações OTA seguras?**
-
-**Quais lições os estudos de caso apresentam para futuros projetos IoT?**
+- **Qual a principal diferença entre IoT residencial e IIoT?**
+- **Por que hospitais possuem requisitos de segurança tão rigorosos?**
+- **Como a segmentação de redes protege uma residência inteligente?**
+- **Qual a importância da Edge Computing em ambientes agrícolas?**
+- **Por que veículos conectados necessitam de atualizações OTA seguras?**
+- **Quais lições os estudos de caso apresentam para futuros projetos IoT?**
 
 ---
 
-# Leituras recomendadas
+## Leituras recomendadas
 
-- ENISA — Good Practices for Smart Homes
-- ENISA — Smart Hospitals Security
-- NIST Smart Grid Framework
-- IEEE Internet of Things Journal
-- ISA/IEC 62443 Case Studies
+- ENISA — *Good Practices for Security of Smart Homes*
+- ENISA — *Smart Hospitals: Security and Resilience*
+- NIST — *Framework and Roadmap for Smart Grid Interoperability*
+- ISO/SAE 21434 — *Road vehicles — Cybersecurity engineering*
+- *IEEE Internet of Things Journal*
 
 ---
 

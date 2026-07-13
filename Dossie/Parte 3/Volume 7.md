@@ -1,507 +1,254 @@
-
 # Parte III
 
-# Volume VII — Ciclo de Vida Seguro dos Dispositivos IoT
+## Volume VII — Ciclo de Vida Seguro dos Dispositivos IoT
 
 ---
 
-# 1. Introdução
+## Mapa da Parte III
 
-Uma das maiores diferenças entre um dispositivo IoT e um software convencional está no seu ciclo de vida.
-
-Enquanto um aplicativo pode ser atualizado diversas vezes ao dia, um dispositivo embarcado pode permanecer em operação durante cinco, dez ou até vinte anos.
-
-Isso significa que sua segurança não depende apenas de boas práticas de programação, mas de decisões tomadas desde a fabricação até o descarte do equipamento.
-
-Esse conceito é conhecido como **Secure Device Lifecycle (SDL)** ou **Ciclo de Vida Seguro do Dispositivo**.
-
-Em vez de tratar a segurança como uma etapa isolada, ela passa a acompanhar todas as fases do produto.
+```mermaid
+flowchart LR
+    V7["Volume VII<br/>Ciclo de Vida<br/>Seguro"] --> V8["Volume VIII<br/>Normas e<br/>Legislação"]
+    V8 --> V9["Volume IX<br/>Estudos de<br/>Caso"]
+    V9 --> V10["Volume X<br/>Guia de<br/>Apresentação"]
+```
 
 ---
 
-# Objetivos deste volume
+## 1. Introdução
+
+Uma das maiores diferenças entre um dispositivo IoT e um software convencional está no seu **ciclo de vida**. Enquanto um aplicativo pode ser atualizado várias vezes ao dia, um dispositivo embarcado pode permanecer em operação por cinco, dez ou até vinte anos.
+
+Isso significa que sua segurança não depende apenas de boas práticas de programação, mas de decisões tomadas **desde a fabricação até o descarte**. Esse conceito é conhecido como **Secure Device Lifecycle**. Em vez de tratar a segurança como etapa isolada, ela acompanha todas as fases do produto.
+
+---
+
+## Objetivos deste volume
 
 Ao final deste capítulo o estudante deverá compreender:
 
 - o ciclo de vida de dispositivos IoT;
 - Secure Development Lifecycle (SDL);
-- Secure by Design;
-- Secure by Default;
-- gerenciamento de vulnerabilidades;
+- Secure by Design e Secure by Default;
+- gerenciamento de vulnerabilidades (CVE/CVSS);
 - atualização de firmware;
-- gerenciamento de certificados;
+- gerenciamento e rotação de certificados;
 - descomissionamento seguro;
-- descarte de dispositivos.
+- Supply Chain Security e SBOM;
+- DevSecOps.
 
 ---
 
-# 2. O ciclo de vida de um dispositivo IoT
+## 2. O ciclo de vida de um dispositivo IoT
 
-Um dispositivo conectado normalmente percorre as seguintes etapas:
+```mermaid
+flowchart LR
+    A[Projeto] --> B[Desenvolvimento]
+    B --> C[Fabricação]
+    C --> D[Provisionamento]
+    D --> E[Implantação]
+    E --> F[Operação]
+    F --> G[Atualizações]
+    G --> H[Manutenção]
+    H --> I[Descomissionamento]
+    G -.->|ciclo contínuo| F
+    style A fill:#e8f4ff,stroke:#0366d6
+    style I fill:#f8d7da,stroke:#dc3545
+```
 
-Projeto
-
-↓
-
-Desenvolvimento
-
-↓
-
-Fabricação
-
-↓
-
-Provisionamento
-
-↓
-
-Implantação
-
-↓
-
-Operação
-
-↓
-
-Atualizações
-
-↓
-
-Manutenção
-
-↓
-
-Descomissionamento
-
-Cada uma dessas fases apresenta riscos específicos.
+Cada fase apresenta riscos específicos. Uma câmera IP pode ser muito segura na fabricação, mas tornar-se vulnerável com o tempo caso **nunca receba atualizações**.
 
 ---
 
-# Exemplo
+## 3. Secure by Design
 
-Uma câmera IP pode ser extremamente segura durante sua fabricação.
+Nos últimos anos, diversos governos passaram a exigir que fabricantes incorporem segurança **desde o início** do desenvolvimento. Em vez de corrigir problemas após o lançamento, busca-se evitá-los durante o projeto: escolha adequada do microcontrolador, autenticação por certificados, Secure Boot, Flash Encryption, OTA e proteção física.
 
-Entretanto, caso nunca receba atualizações de firmware, ela se tornará vulnerável com o passar dos anos.
-
----
-
-# 3. Secure by Design
-
-Nos últimos anos diversos governos passaram a exigir que fabricantes incorporem segurança desde o início do desenvolvimento.
-
-Esse conceito recebe o nome de **Secure by Design**.
-
-Em vez de corrigir problemas após o lançamento, busca-se evitá-los durante o projeto.
-
-Isso envolve decisões como:
-
-- escolha adequada do microcontrolador;
-- autenticação baseada em certificados;
-- Secure Boot;
-- Flash Encryption;
-- atualização OTA;
-- proteção física.
+> **💡 Curiosidade — custo:** Corrigir uma vulnerabilidade na fase de projeto pode custar **dezenas de vezes menos** do que corrigi-la após milhões de dispositivos vendidos.
 
 ---
 
-# Curiosidade
+## 4. Secure by Default
 
-Corrigir uma vulnerabilidade durante a fase de projeto pode custar dezenas de vezes menos do que corrigi-la após milhões de dispositivos já terem sido vendidos.
+Além de projetar corretamente, os dispositivos devem **sair de fábrica seguros**: Telnet desabilitado, sem senhas padrão, criptografia ativada, autenticação obrigatória e logs importantes registrados. O usuário não deveria precisar configurar manualmente recursos básicos de segurança.
 
----
-
-# 4. Secure by Default
-
-Além de projetar corretamente, os dispositivos devem sair de fábrica configurados de forma segura.
-
-Isso significa que:
-
-- Telnet deve permanecer desabilitado;
-- senhas padrão não devem existir;
-- criptografia deve estar ativada;
-- autenticação deve ser obrigatória;
-- logs importantes devem ser registrados.
-
-O usuário não deveria precisar configurar manualmente recursos básicos de segurança.
+```mermaid
+flowchart TD
+    subgraph INS["❌ Configuração insegura"]
+        A[Senha: admin / admin]
+    end
+    subgraph SEG["✅ Configuração segura (Secure by Default)"]
+        B[Primeira inicialização] --> C[Usuário cria senha forte]
+        C --> D[Dispositivo gera chaves criptográficas]
+        D --> E[Operação iniciada]
+    end
+    style INS fill:#f8d7da,stroke:#dc3545
+    style SEG fill:#e8ffe8,stroke:#28a745
+```
 
 ---
 
-# Exemplo
+## 5. Provisionamento Seguro
 
-Configuração insegura:
-
-Senha:
-
-admin/admin
+Provisionar é preparar o dispositivo para produção: gravação do firmware, instalação de certificados, registro em servidores, associação ao cliente e configuração inicial. Todo o processo deve ocorrer em ambiente controlado — caso contrário, milhares de equipamentos podem **nascer inseguros** (ver Volume II).
 
 ---
 
-Configuração segura:
+## 6. Gerenciamento de Vulnerabilidades
 
-Primeira inicialização
+Nenhum software é perfeito; novas vulnerabilidades continuarão sendo descobertas durante toda a vida útil. O fabricante deve possuir processos para receber relatos, analisar, corrigir e distribuir atualizações.
 
-↓
+| Sigla | Significado | Função |
+| ------- | ------------- | -------- |
+| **CVE** | Common Vulnerabilities and Exposures | Identificador único de cada vulnerabilidade (ex.: CVE-2020-11901) |
+| **CVSS** | Common Vulnerability Scoring System | Pontuação de gravidade (0.0 a 10.0) |
+| **CWE** | Common Weakness Enumeration | Categoriza o *tipo* de fraqueza |
 
-Usuário cria senha forte
+O **CVSS** estima a gravidade: quanto maior a pontuação, maior a prioridade de correção.
 
-↓
-
-Dispositivo gera chaves criptográficas
-
-↓
-
-Operação iniciada
-
----
-
-# 5. Provisionamento Seguro
-
-Provisionar significa preparar um dispositivo para entrar em produção.
-
-Essa etapa normalmente inclui:
-
-- gravação do firmware;
-- instalação de certificados;
-- registro em servidores;
-- associação ao cliente;
-- configuração inicial.
-
-Todo esse processo deve ocorrer em ambiente controlado.
-
-Caso seja comprometido, milhares de equipamentos poderão nascer inseguros.
+| Faixa CVSS v3.1 | Severidade |
+| ----------------- | ------------ |
+| 0.1 – 3.9 | Baixa |
+| 4.0 – 6.9 | Média |
+| 7.0 – 8.9 | Alta |
+| 9.0 – 10.0 | Crítica |
 
 ---
 
-# Exemplo
+## 7. Atualizações OTA
 
-Fábrica
+Atualizações Over-The-Air são um dos principais mecanismos de manutenção da segurança, mas precisam ser cuidadosamente planejadas. Boas práticas: assinatura digital, criptografia, rollback automático, validação de integridade e atualização gradual.
 
-↓
+```mermaid
+flowchart LR
+    A[1%] --> B[5%] --> C[10%] --> D[50%] --> E[100%]
+    style A fill:#e8f4ff,stroke:#0366d6
+    style E fill:#e8ffe8,stroke:#28a745
+```
 
-Firmware oficial
-
-↓
-
-Certificado exclusivo
-
-↓
-
-Registro na nuvem
-
-↓
-
-Envio ao cliente
+> **⚠️ Atenção:** Atualizar rapidamente é importante. Atualizar **sem validação** pode ser ainda mais perigoso — uma atualização não assinada é um vetor direto para código malicioso.
 
 ---
 
-# 6. Gerenciamento de Vulnerabilidades
+## 8. Rotação e Revogação de Certificados
 
-Nenhum software é perfeito.
+Certificados digitais possuem prazo de validade e precisam ser renovados periodicamente (**rotação**). Caso um certificado comprometido permaneça válido, um invasor poderá continuar usando-o. Quando uma chave é comprometida, ela deve ser **revogada** imediatamente (via CRL ou OCSP).
 
-Consequentemente, novas vulnerabilidades continuarão sendo descobertas durante toda a vida útil do equipamento.
-
-O fabricante deve possuir processos para:
-
-- receber relatos;
-- analisar vulnerabilidades;
-- desenvolver correções;
-- distribuir atualizações.
-
----
-
-# CVE
-
-Grande parte das vulnerabilidades recebe um identificador denominado CVE (Common Vulnerabilities and Exposures).
-
-Esse identificador facilita:
-
-- documentação;
-- divulgação;
-- gerenciamento.
+```mermaid
+flowchart LR
+    A[Certificado roubado] --> B[Autoridade Certificadora]
+    B --> C[Revogação - CRL/OCSP]
+    C --> D[Servidores deixam de aceitá-lo]
+    style A fill:#f8d7da,stroke:#dc3545
+    style D fill:#e8ffe8,stroke:#28a745
+```
 
 ---
 
-# CVSS
+## 9. Descomissionamento Seguro
 
-Além do CVE, normalmente calcula-se uma pontuação chamada CVSS.
+Todo dispositivo chega ao fim da vida útil. Simplesmente desligá-lo não basta: antes do descarte devem ser removidos certificados, senhas, tokens, informações pessoais e chaves criptográficas.
 
-Ela estima a gravidade da vulnerabilidade.
+### Cryptographic Erase
 
-Quanto maior a pontuação, maior a prioridade para correção.
+Técnica amplamente utilizada: apagar apenas a **chave** responsável por descriptografar os dados. Mesmo que toda a memória permaneça intacta, as informações tornam-se **irrecuperáveis**.
 
----
-
-# 7. Atualizações OTA
-
-Atualizações Over-The-Air representam um dos principais mecanismos para manutenção da segurança.
-
-Entretanto, elas precisam ser cuidadosamente planejadas.
-
-Boas práticas incluem:
-
-- assinatura digital;
-- criptografia;
-- rollback automático;
-- validação de integridade;
-- atualização gradual.
+```mermaid
+flowchart LR
+    A[(Flash criptografada)] --> B[Chave de criptografia apagada]
+    B --> C[Dados permanecem gravados]
+    C --> D[🔒 Conteúdo ilegível para sempre]
+    style D fill:#e8ffe8,stroke:#28a745
+```
 
 ---
 
-# Atualização gradual
+## 10. Supply Chain Security
 
-1%
+A segurança também depende dos **componentes de terceiros**. Um firmware pode conter dezenas de bibliotecas; se uma delas tiver vulnerabilidade, todo o sistema é afetado (ex.: **Ripple20**, que afetou a pilha TCP/IP da Treck usada em milhões de dispositivos).
 
-↓
+### SBOM (Software Bill of Materials)
 
-5%
+Inventário completo contendo bibliotecas, versões, dependências e componentes utilizados. Facilita identificar rapidamente quais dispositivos são afetados quando surge uma nova vulnerabilidade.
 
-↓
-
-10%
-
-↓
-
-50%
-
-↓
-
-100%
-
-Esse procedimento reduz o impacto caso a atualização apresente falhas.
+```mermaid
+flowchart TD
+    FW[Firmware] --> L1[Biblioteca MQTT]
+    FW --> L2[Biblioteca TLS]
+    FW --> L3[Driver Wi-Fi]
+    FW --> L4[Biblioteca JSON]
+    L1 & L2 & L3 & L4 --> SBOM[📄 SBOM]
+    SBOM -->|vuln. em L2?| Q[Localiza todos os<br/>dispositivos impactados]
+    style SBOM fill:#fff3cd,stroke:#d39e00
+```
 
 ---
 
-# Atenção
+## 11. DevSecOps
 
-Atualizar rapidamente é importante.
+Tradicionalmente, desenvolvimento e segurança eram tratados separadamente. O **DevSecOps** integra a segurança de forma contínua em todo o pipeline (*shift-left*).
 
-Atualizar sem validação pode ser ainda mais perigoso.
-
----
-
-# 8. Rotação de Certificados
-
-Certificados digitais possuem prazo de validade.
-
-Consequentemente precisam ser renovados periodicamente.
-
-Esse processo é conhecido como **Rotação de Certificados**.
-
-Caso um certificado comprometido permaneça válido, um invasor poderá continuar utilizando-o.
+```mermaid
+flowchart LR
+    P[Projeto] --> D[Desenvolvimento]
+    D --> T[Testes / SAST-DAST]
+    T --> I[Implantação]
+    I --> M[Monitoramento]
+    M -.->|feedback| P
+    SEC[🔐 Segurança] -.-> P & D & T & I & M
+    style SEC fill:#d4edda,stroke:#28a745
+```
 
 ---
 
-# Revogação
-
-Quando uma chave é comprometida, ela deve ser revogada imediatamente.
-
-Isso impede novas autenticações utilizando aquele certificado.
-
----
-
-# Exemplo
-
-Certificado roubado
-
-↓
-
-Autoridade Certificadora
-
-↓
-
-Revogação
-
-↓
-
-Servidores deixam de aceitá-lo
-
----
-
-# 9. Descomissionamento Seguro
-
-Todo dispositivo eventualmente chega ao fim de sua vida útil.
-
-Entretanto, simplesmente desligá-lo não é suficiente.
-
-Antes do descarte devem ser removidos:
-
-- certificados;
-- senhas;
-- tokens;
-- informações pessoais;
-- chaves criptográficas.
-
----
-
-# Cryptographic Erase
-
-Uma técnica amplamente utilizada consiste em apagar apenas a chave responsável por descriptografar os dados.
-
-Mesmo que toda a memória permaneça intacta, as informações tornam-se irrecuperáveis.
-
----
-
-# Exemplo
-
-Flash criptografada
-
-↓
-
-Chave apagada
-
-↓
-
-Dados permanecem armazenados
-
-↓
-
-Conteúdo ilegível
-
----
-
-# 10. Supply Chain Security
-
-A segurança também depende dos componentes utilizados durante o desenvolvimento.
-
-Atualmente um firmware pode conter dezenas de bibliotecas de terceiros.
-
-Caso uma delas possua vulnerabilidades, todo o sistema será afetado.
-
----
-
-# SBOM
-
-SBOM significa:
-
-Software Bill of Materials.
-
-Consiste em um inventário completo contendo:
-
-- bibliotecas;
-- versões;
-- dependências;
-- componentes utilizados.
-
-Isso facilita identificar rapidamente quais dispositivos são afetados quando uma nova vulnerabilidade é descoberta.
-
----
-
-# Exemplo
-
-Firmware
-
-↓
-
-Biblioteca MQTT
-
-↓
-
-Biblioteca TLS
-
-↓
-
-Driver Wi-Fi
-
-↓
-
-Biblioteca JSON
-
-↓
-
-SBOM
-
-Caso uma biblioteca apresente vulnerabilidade, torna-se possível localizar todos os dispositivos impactados.
-
----
-
-# 11. DevSecOps
-
-Tradicionalmente, desenvolvimento e segurança eram tratados separadamente.
-
-Hoje utiliza-se DevSecOps.
-
-A segurança passa a acompanhar continuamente:
-
-Projeto
-
-↓
-
-Desenvolvimento
-
-↓
-
-Testes
-
-↓
-
-Implantação
-
-↓
-
-Monitoramento
-
-Isso reduz significativamente a introdução de vulnerabilidades.
-
----
-
-# 12. Boas práticas
+## 12. Boas práticas
 
 Um fabricante moderno deve:
 
 - implementar Secure Boot;
 - utilizar Flash Encryption;
 - remover senhas padrão;
-- fornecer atualizações OTA;
-- utilizar autenticação baseada em certificados;
+- fornecer atualizações OTA assinadas;
+- usar autenticação baseada em certificados;
 - manter SBOM atualizado;
-- responder rapidamente a novas vulnerabilidades;
+- responder rapidamente a novas vulnerabilidades (PSIRT / disclosure responsável);
 - oferecer suporte durante todo o ciclo de vida do produto.
 
 ---
 
-# Resumo do Volume
+## Resumo do Volume
 
-Neste capítulo estudamos a segurança ao longo de todo o ciclo de vida dos dispositivos IoT.
+Neste capítulo estudamos a segurança ao longo de todo o ciclo de vida dos dispositivos IoT. Foram apresentados Secure by Design, Secure by Default, Provisionamento Seguro, gerenciamento de vulnerabilidades (CVE/CVSS), DevSecOps, SBOM, Rotação de Certificados e Descomissionamento Seguro.
 
-Foram apresentados conceitos como Secure by Design, Secure by Default, Provisionamento Seguro, DevSecOps, SBOM, Rotação de Certificados e Descomissionamento Seguro.
-
-Esses conceitos demonstram que proteger um dispositivo não significa apenas desenvolver um firmware seguro, mas manter continuamente sua segurança desde a fabricação até seu descarte.
+Esses conceitos demonstram que proteger um dispositivo não significa apenas desenvolver um firmware seguro, mas **manter continuamente sua segurança desde a fabricação até o descarte**.
 
 ---
 
-# Perguntas para discussão
+## Perguntas para discussão
 
 1. Um fabricante deveria ser obrigado a fornecer atualizações durante toda a vida útil do dispositivo?
-
 2. Qual a importância do SBOM diante de vulnerabilidades em bibliotecas de terceiros?
-
 3. Vale a pena manter dispositivos sem suporte conectados à Internet?
-
 4. O descarte inadequado de um equipamento representa risco de segurança?
-
 5. Por que Secure by Design reduz custos a longo prazo?
 
 ---
 
-# Possíveis perguntas do professor
+## Possíveis perguntas do professor
 
-**O que diferencia Secure by Design de Secure by Default?**
-
-**Qual a função de um SBOM?**
-
-**Por que atualizações OTA devem ser assinadas digitalmente?**
-
-**O que é Cryptographic Erase?**
-
-**Por que um dispositivo continua exigindo cuidados mesmo após deixar de ser utilizado?**
+- **O que diferencia Secure by Design de Secure by Default?**
+- **Qual a função de um SBOM?**
+- **Por que atualizações OTA devem ser assinadas digitalmente?**
+- **O que é Cryptographic Erase?**
+- **Por que um dispositivo continua exigindo cuidados mesmo após deixar de ser utilizado?**
 
 ---
 
-# Leituras recomendadas
+## Leituras recomendadas
 
-- NIST SP 800-193
+- NIST SP 800-193 — *Platform Firmware Resiliency*
 - NIST IR 8259
-- NTIA Software Bill of Materials
+- NTIA — *The Minimum Elements For a Software Bill of Materials (SBOM)*
 - Cyber Resilience Act (CRA)
 - ETSI EN 303 645
 

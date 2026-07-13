@@ -1,542 +1,223 @@
-
 # Volume VIII — Normas, Frameworks, Legislação e Boas Práticas Internacionais
 
 ---
 
-# 1. Introdução
+## 1. Introdução
 
-Até este momento, estudamos diversos mecanismos técnicos empregados para proteger dispositivos IoT e infraestruturas industriais.
-
-Entretanto, surge uma questão importante:
+Até aqui estudamos diversos mecanismos técnicos de proteção. Surge, porém, uma questão importante:
 
 > Como saber se um dispositivo realmente atende a requisitos mínimos de segurança?
 
-A resposta está nas normas técnicas, frameworks de segurança e legislações internacionais.
-
-Esses documentos não descrevem apenas tecnologias.
-
-Eles estabelecem princípios, processos, responsabilidades e requisitos mínimos que fabricantes, desenvolvedores, integradores e organizações devem seguir para reduzir riscos.
-
-Em ambientes industriais, governamentais e corporativos, seguir essas normas deixou de ser apenas uma recomendação.
-
-Em muitos casos, tornou-se um requisito contratual ou legal.
+A resposta está nas **normas técnicas, frameworks de segurança e legislações internacionais**. Esses documentos estabelecem princípios, processos, responsabilidades e requisitos mínimos que fabricantes, desenvolvedores, integradores e organizações devem seguir. Em ambientes industriais, governamentais e corporativos, segui-los deixou de ser recomendação — em muitos casos, tornou-se **requisito contratual ou legal**.
 
 ---
 
-# Objetivos deste volume
+## Objetivos deste volume
 
-Ao final deste capítulo o estudante deverá compreender:
-
-- importância das normas internacionais;
-- NIST Cybersecurity Framework;
-- NIST IR 8259;
-- ISA/IEC 62443;
-- ETSI EN 303 645;
-- OWASP IoT Project;
-- MITRE ATT&CK;
-- LGPD;
-- GDPR;
-- Cyber Resilience Act;
-- princípios gerais de conformidade.
+Compreender: NIST Cybersecurity Framework, NIST IR 8259, ISA/IEC 62443, ETSI EN 303 645, OWASP IoT Project, MITRE ATT&CK, LGPD, GDPR, Cyber Resilience Act, ISO/IEC 27001 e princípios gerais de conformidade.
 
 ---
 
-# 2. Por que normas são importantes?
+## 2. Por que normas são importantes?
 
-Sem padronização, cada fabricante implementaria segurança de maneira diferente.
+Sem padronização, cada fabricante implementaria segurança de forma diferente, dificultando auditorias, certificações, integração e avaliação de riscos. As normas fornecem uma **linguagem comum**: empresas conseguem definir requisitos mínimos independentemente do fabricante.
 
-Isso dificultaria:
+### Panorama das principais referências
 
-- auditorias;
-- certificações;
-- integração entre equipamentos;
-- avaliação de riscos.
-
-As normas fornecem uma linguagem comum.
-
-Graças a elas, empresas conseguem definir requisitos mínimos independentemente do fabricante escolhido.
-
----
-
-# Exemplo
-
-Imagine duas empresas adquirindo sensores de fabricantes diferentes.
-
-Se ambos seguirem as mesmas normas internacionais, torna-se muito mais simples integrá-los em um mesmo ambiente industrial.
-
----
-
-# 3. NIST Cybersecurity Framework (CSF)
-
-O NIST (National Institute of Standards and Technology) desenvolveu um dos frameworks de segurança mais utilizados no mundo.
-
-Seu objetivo não é substituir outras normas.
-
-Ele funciona como um guia para gerenciamento de riscos.
-
-O framework organiza a segurança em seis grandes funções.
+```mermaid
+mindmap
+  root((Referências de<br/>Segurança IoT))
+    Frameworks
+      NIST CSF 2.0
+      NIST IR 8259
+    Normas técnicas
+      ISA/IEC 62443
+      ETSI EN 303 645
+      ISO/IEC 27001
+    Comunidade
+      OWASP IoT
+      MITRE ATT&CK
+    Legislação
+      LGPD Brasil
+      GDPR Europa
+      CRA Europa
+```
 
 ---
 
-## Govern
+## 3. NIST Cybersecurity Framework (CSF 2.0)
 
-Definição de políticas.
+O **NIST** (*National Institute of Standards and Technology*) desenvolveu um dos frameworks mais utilizados no mundo — um guia para **gerenciamento de riscos**. A versão **2.0 (2024)** organiza a segurança em **seis funções** (a função **Govern** foi adicionada na 2.0).
 
-Papéis.
+```mermaid
+flowchart TD
+    GV[GOVERN<br/>políticas, papéis, gestão]
+    GV --> ID[IDENTIFY<br/>ativos e riscos]
+    GV --> PR[PROTECT<br/>autenticação, cripto, acesso]
+    GV --> DE[DETECT<br/>monitoramento, anomalias]
+    GV --> RS[RESPOND<br/>resposta a incidentes]
+    GV --> RC[RECOVER<br/>recuperação e melhoria]
+    style GV fill:#fff3cd,stroke:#d39e00
+```
 
-Responsabilidades.
+| Função | Objetivo |
+| -------- | ---------- |
+| **Govern** | Definir políticas, papéis, responsabilidades e gestão de riscos organizacional |
+| **Identify** | Identificar ativos, riscos e conhecer a infraestrutura |
+| **Protect** | Implementar controles preventivos |
+| **Detect** | Monitorar continuamente e identificar anomalias |
+| **Respond** | Responder de forma organizada aos incidentes |
+| **Recover** | Recuperar operações e aplicar lições aprendidas |
 
-Gestão organizacional.
-
----
-
-## Identify
-
-Identificação de ativos.
-
-Mapeamento de riscos.
-
-Conhecimento da infraestrutura.
-
----
-
-## Protect
-
-Implementação de mecanismos preventivos.
-
-Exemplos:
-
-- autenticação;
-- criptografia;
-- controle de acesso.
+> **💡 Curiosidade:** Embora criado nos EUA, o NIST CSF tornou-se referência **internacional**.
 
 ---
 
-## Detect
+## 4. NIST IR 8259
 
-Monitoramento contínuo.
-
-Identificação de comportamentos anômalos.
+Enquanto o CSF é amplo, a série **NIST IR 8259** foi desenvolvida especificamente para **dispositivos IoT**. Define capacidades técnicas fundamentais que todo equipamento deveria possuir: identificação única, configuração segura, proteção lógica de dados, atualização segura, monitoramento e gerenciamento de vulnerabilidades. Serve tanto para fabricantes quanto para compradores.
 
 ---
 
-## Respond
+## 5. ISA/IEC 62443
 
-Resposta organizada aos incidentes.
+Principal conjunto de normas para **segurança industrial** (SCADA, PLCs, RTUs, DCS, redes industriais). Divide responsabilidades entre participantes:
 
----
+| Papel | Responsabilidade |
+| ------- | ------------------ |
+| **Fabricantes** | Desenvolver produtos seguros |
+| **Integradores** | Implantar arquiteturas adequadas |
+| **Operadores** | Manter a segurança durante toda a vida útil |
 
-## Recover
-
-Recuperação das operações.
-
-Lições aprendidas.
-
-Melhoria contínua.
+Conceitos-chave: Defense in Depth, segmentação (zonas e conduítes), gestão de riscos, controle de acesso, atualizações e monitoramento. Grande parte das grandes indústrias a utiliza como referência.
 
 ---
 
-# Curiosidade
+## 6. ETSI EN 303 645
 
-Embora tenha sido criado nos Estados Unidos, o NIST CSF tornou-se referência internacional.
+Norma europeia criada especificamente para dispositivos IoT **de consumo**. Foca em eliminar problemas extremamente comuns:
 
----
-
-# 4. NIST IR 8259
-
-Enquanto o CSF aborda segurança de forma ampla, a série NIST IR 8259 foi desenvolvida especificamente para dispositivos IoT.
-
-Ela define capacidades fundamentais que todo equipamento deveria possuir.
-
-Entre elas:
-
-- identificação única;
-- configuração segura;
-- proteção lógica;
-- atualização segura;
-- monitoramento;
-- gerenciamento de vulnerabilidades.
-
-Essas recomendações servem tanto para fabricantes quanto para compradores.
-
----
-
-# Exemplo
-
-Antes de adquirir um dispositivo IoT, uma organização pode verificar se ele atende às recomendações do NIST IR 8259.
-
----
-
-# 5. ISA/IEC 62443
-
-A ISA/IEC 62443 representa atualmente o principal conjunto de normas voltadas para segurança industrial.
-
-Seu objetivo consiste em proteger:
-
-- SCADA;
-- PLCs;
-- RTUs;
-- DCS;
-- redes industriais.
-
-Ela divide responsabilidades entre diferentes participantes.
-
----
-
-## Fabricantes
-
-Devem desenvolver produtos seguros.
-
----
-
-## Integradores
-
-Devem implantar arquiteturas adequadas.
-
----
-
-## Operadores
-
-Devem manter os sistemas protegidos durante toda sua vida útil.
-
----
-
-# Conceitos importantes
-
-Defense in Depth.
-
-Segmentação.
-
-Gestão de riscos.
-
-Gerenciamento de usuários.
-
-Controle de acesso.
-
-Atualizações.
-
-Monitoramento.
-
----
-
-# Na prática
-
-Grande parte das grandes indústrias utiliza a ISA/IEC 62443 como referência para novos projetos.
-
----
-
-# 6. ETSI EN 303 645
-
-Essa norma foi criada especificamente para dispositivos IoT destinados ao consumidor.
-
-Seu foco principal consiste em eliminar problemas extremamente comuns.
-
-Entre suas recomendações destacam-se:
-
-- proibição de senhas universais;
+- proibição de senhas universais padrão;
 - atualizações seguras;
 - proteção de dados pessoais;
 - minimização da superfície de ataque;
-- gerenciamento de vulnerabilidades.
+- gerenciamento de vulnerabilidades (canal de divulgação).
+
+> **Exemplo:** um fabricante não deveria vender milhares de câmeras com usuário `admin` e senha `admin`. Essa prática é explicitamente desencorajada pela ETSI EN 303 645.
 
 ---
 
-# Exemplo
+## 7. OWASP IoT Project
 
-Um fabricante não deveria vender milhares de câmeras utilizando:
-
-Usuário:
-
-admin
-
-Senha:
-
-admin
-
-Essa prática é explicitamente desencorajada pela ETSI.
+Uma das maiores referências mundiais em segurança de aplicações. Além do famoso OWASP Top 10 para Web, mantém uma iniciativa específica para IoT (o **IoT Top 10** — ver Volume V), reunindo vulnerabilidades, estudos, recomendações e boas práticas. Muitos laboratórios a usam como **checklist** em avaliações.
 
 ---
 
-# 7. OWASP IoT Project
+## 8. MITRE ATT&CK
 
-A OWASP tornou-se uma das maiores referências mundiais em segurança de aplicações.
-
-Além do famoso OWASP Top 10 para aplicações Web, existe uma iniciativa específica para IoT.
-
-Ela reúne:
-
-- vulnerabilidades;
-- estudos;
-- recomendações;
-- boas práticas.
-
-É amplamente utilizada durante auditorias e testes de segurança.
+O **MITRE ATT&CK** não é uma norma — é uma **base de conhecimento** sobre técnicas de atacantes (invasão, persistência, movimentação lateral, coleta, exfiltração). Existe a versão **for ICS** para ambientes industriais. Ajuda equipes a compreender *como* os ataques acontecem e quais controles impedem cada etapa.
 
 ---
 
-# Curiosidade
+## 9. LGPD
 
-Muitos laboratórios utilizam a lista da OWASP como checklist durante avaliações de dispositivos.
+A **Lei Geral de Proteção de Dados** (Lei nº 13.709/2018) protege informações pessoais no Brasil e aplica-se também a dispositivos IoT (relógios inteligentes, assistentes virtuais, câmeras, apps domésticos). Princípios: finalidade, necessidade, transparência, segurança, responsabilização e prestação de contas.
 
----
-
-# 8. MITRE ATT&CK
-
-O MITRE ATT&CK não é uma norma.
-
-Trata-se de uma base de conhecimento sobre técnicas utilizadas por atacantes.
-
-Ela documenta:
-
-- métodos de invasão;
-- persistência;
-- movimentação lateral;
-- coleta de informações;
-- exfiltração.
-
-Existe ainda uma versão específica voltada para ambientes industriais.
+> **Exemplo:** uma câmera residencial não deve coletar informações além das necessárias à sua finalidade (princípio da **minimização**).
 
 ---
 
-# Benefícios
+## 10. GDPR
 
-Ajuda equipes de segurança a compreender:
-
-Como os ataques acontecem.
-
-Quais técnicas são utilizadas.
-
-Quais controles podem impedir cada etapa.
+Na Europa, a principal legislação é o **GDPR** (Regulation (EU) 2016/679), que influenciou diversas leis no mundo — inclusive a LGPD. Princípios: consentimento, direito ao esquecimento, portabilidade, minimização de dados e **Privacy by Design**.
 
 ---
 
-# 9. LGPD
+## 11. Cyber Resilience Act (CRA)
 
-A Lei Geral de Proteção de Dados entrou em vigor no Brasil com o objetivo de proteger informações pessoais.
+O **Cyber Resilience Act** representa uma evolução importante na regulamentação de produtos digitais na União Europeia, responsabilizando fabricantes pela segurança de seus produtos "com elementos digitais".
 
-Ela aplica-se também a dispositivos IoT.
+> **📅 Datas verificadas:** O CRA **entrou em vigor em 10 de dezembro de 2024**, com aplicação faseada:
+>
+> - **11 de setembro de 2026** — obrigações de **notificação** de vulnerabilidades ativamente exploradas e incidentes graves à ENISA (em até 24 horas);
+> - **11 de dezembro de 2027** — aplicação das **obrigações principais** (avaliação de risco, requisitos essenciais de cibersegurança, documentação técnica, avaliação de conformidade e marcação CE).
 
-Exemplos:
+Requisitos: desenvolvimento seguro, correção de vulnerabilidades, atualizações durante período de suporte definido, divulgação responsável de falhas e documentação de segurança.
 
-Relógios inteligentes.
-
-Assistentes virtuais.
-
-Câmeras.
-
-Aplicativos domésticos.
-
-Todos coletam informações potencialmente sensíveis.
+> **⚠️ Atenção:** Embora seja legislação europeia, fabricantes internacionais frequentemente adaptam seus produtos para atender ao CRA (efeito extraterritorial de fato, semelhante ao GDPR).
 
 ---
 
-# Princípios
+## 12. ISO/IEC 27001
 
-Finalidade.
-
-Necessidade.
-
-Transparência.
-
-Segurança.
-
-Responsabilização.
-
-Prestação de contas.
+A **ISO/IEC 27001** não trata exclusivamente de IoT — estabelece requisitos para **Sistemas de Gestão da Segurança da Informação (SGSI)**. Organizações certificadas demonstram processos formais para gerenciamento de riscos, controle de ativos, auditoria e continuidade de negócios. Frequentemente exigida como requisito contratual.
 
 ---
 
-# Exemplo
+## 13. Como essas normas se complementam
 
-Uma câmera residencial não deve coletar informações além daquelas necessárias para sua finalidade.
+Cada documento possui um foco; juntos, oferecem visão abrangente.
 
----
+```mermaid
+flowchart TD
+    CSF[NIST CSF 2.0] --> RISK[Gerenciamento de riscos]
+    ISA[ISA/IEC 62443] --> IND[Segurança industrial]
+    IR[NIST IR 8259] --> CAP[Capacidades mínimas IoT]
+    OWASP[OWASP IoT] --> VULN[Vulnerabilidades comuns]
+    LGPD[LGPD] --> DADOS[Proteção de dados-BR]
+    GDPR[GDPR] --> PRIV[Privacidade-UE]
+    CRA[CRA] --> RESP[Responsabilidade do fabricante]
+```
 
-# 10. GDPR
+| Referência | Foco principal |
+| ----------- | ---------------- |
+| NIST CSF 2.0 | Gerenciamento de riscos |
+| ISA/IEC 62443 | Segurança industrial (OT) |
+| NIST IR 8259 | Capacidades mínimas de dispositivos IoT |
+| ETSI EN 303 645 | IoT de consumo |
+| OWASP IoT | Vulnerabilidades comuns |
+| LGPD / GDPR | Proteção de dados / privacidade |
+| CRA | Responsabilidade do fabricante |
+| ISO/IEC 27001 | Gestão organizacional (SGSI) |
 
-Na Europa, a principal legislação é o GDPR.
+### Boas práticas convergentes
 
-Ela influenciou diversas leis ao redor do mundo.
-
-Entre seus princípios destacam-se:
-
-- consentimento;
-- direito ao esquecimento;
-- portabilidade;
-- minimização de dados;
-- Privacy by Design.
-
-Diversos fabricantes desenvolveram novos recursos especificamente para atender ao GDPR.
-
----
-
-# 11. Cyber Resilience Act (CRA)
-
-O Cyber Resilience Act representa uma importante evolução na regulamentação de produtos digitais.
-
-Seu objetivo consiste em responsabilizar fabricantes pela segurança de seus produtos.
-
-Entre os principais requisitos destacam-se:
-
-- desenvolvimento seguro;
-- correção de vulnerabilidades;
-- atualizações durante período definido;
-- divulgação responsável de falhas;
-- documentação de segurança.
-
-Essa legislação deverá influenciar fortemente o mercado mundial.
+Independentemente da norma, praticamente todas convergem para: autenticação forte, criptografia, atualizações seguras, monitoramento contínuo, gestão de vulnerabilidades, **menor privilégio**, **defesa em profundidade** e **segurança desde o projeto**.
 
 ---
 
-# Atenção
+## Resumo do Volume
 
-Embora seja uma legislação europeia, fabricantes internacionais frequentemente adaptam seus produtos para atender ao CRA.
+Foram apresentadas as principais normas, frameworks e legislações de segurança em IoT: NIST CSF 2.0, NIST IR 8259, ISA/IEC 62443, ETSI EN 303 645, OWASP IoT Project, MITRE ATT&CK, LGPD, GDPR, Cyber Resilience Act e ISO/IEC 27001.
 
----
-
-# 12. ISO/IEC 27001
-
-A ISO 27001 não trata exclusivamente de IoT.
-
-Ela estabelece requisitos para Sistemas de Gestão da Segurança da Informação (SGSI).
-
-Organizações certificadas demonstram possuir processos formais para:
-
-- gerenciamento de riscos;
-- controle de ativos;
-- auditoria;
-- continuidade de negócios.
-
-Diversas empresas utilizam essa certificação como requisito contratual.
+Embora com objetivos distintos, todas convergem para um princípio: a segurança deve ser **planejada desde o início e mantida durante todo o ciclo de vida** do dispositivo.
 
 ---
 
-# 13. Como essas normas se complementam?
-
-Cada documento possui objetivos diferentes.
-
-Exemplo:
-
-NIST CSF
-
-↓
-
-Gerenciamento de riscos.
-
----
-
-ISA/IEC 62443
-
-↓
-
-Segurança Industrial.
-
----
-
-NIST IR 8259
-
-↓
-
-Capacidades mínimas para dispositivos IoT.
-
----
-
-OWASP
-
-↓
-
-Vulnerabilidades comuns.
-
----
-
-LGPD
-
-↓
-
-Proteção de dados.
-
----
-
-GDPR
-
-↓
-
-Privacidade.
-
----
-
-CRA
-
-↓
-
-Responsabilidade dos fabricantes.
-
----
-
-Em conjunto, essas referências oferecem uma visão extremamente abrangente da segurança.
-
----
-
-# Boas práticas recomendadas
-
-Independentemente da norma utilizada, praticamente todas convergem para princípios semelhantes.
-
-Entre eles:
-
-- autenticação forte;
-- criptografia;
-- atualizações seguras;
-- monitoramento contínuo;
-- gestão de vulnerabilidades;
-- menor privilégio;
-- defesa em profundidade;
-- segurança desde o projeto.
-
----
-
-# Resumo do Volume
-
-Neste capítulo foram apresentadas as principais normas, frameworks e legislações relacionadas à segurança em dispositivos IoT.
-
-Estudamos o NIST Cybersecurity Framework, NIST IR 8259, ISA/IEC 62443, ETSI EN 303 645, OWASP IoT Project, MITRE ATT&CK, LGPD, GDPR e Cyber Resilience Act.
-
-Embora possuam objetivos distintos, todas essas referências convergem para um mesmo princípio: a segurança deve ser planejada desde o início do desenvolvimento e mantida durante todo o ciclo de vida do dispositivo.
-
----
-
-# Perguntas para discussão
+## Perguntas para discussão
 
 1. Um dispositivo pode ser considerado seguro apenas por cumprir uma norma?
-
 2. Qual a diferença entre legislação e norma técnica?
-
 3. Como a LGPD influencia o desenvolvimento de dispositivos IoT?
-
 4. O Cyber Resilience Act pode modificar o mercado mundial?
-
 5. Vale a pena investir em certificações internacionais?
 
 ---
 
-# Possíveis perguntas do professor
+## Possíveis perguntas do professor
 
-**Qual a diferença entre o NIST CSF e o NIST IR 8259?**
-
-**Por que a ISA/IEC 62443 é considerada referência para ambientes industriais?**
-
-**O que a ETSI EN 303 645 busca combater?**
-
-**Como a LGPD afeta dispositivos inteligentes?**
-
-**Qual o principal objetivo do Cyber Resilience Act?**
-
-**O MITRE ATT&CK é uma norma? Explique.**
+- **Qual a diferença entre o NIST CSF e o NIST IR 8259?**
+- **Por que a ISA/IEC 62443 é referência para ambientes industriais?**
+- **O que a ETSI EN 303 645 busca combater?**
+- **Como a LGPD afeta dispositivos inteligentes?**
+- **Qual o principal objetivo do Cyber Resilience Act?**
+- **O MITRE ATT&CK é uma norma? Explique.**
 
 ---
 
-# Leituras recomendadas
+## Leituras recomendadas
 
-- NIST Cybersecurity Framework 2.0
+- NIST Cybersecurity Framework 2.0 (2024)
 - NIST IR 8259 Series
 - ISA/IEC 62443
 - ETSI EN 303 645
@@ -544,7 +225,7 @@ Embora possuam objetivos distintos, todas essas referências convergem para um m
 - MITRE ATT&CK for ICS
 - LGPD (Lei nº 13.709/2018)
 - GDPR (Regulation (EU) 2016/679)
-- Cyber Resilience Act (União Europeia)
+- Cyber Resilience Act — Regulation (EU) 2024/2847
 
 ---
 
