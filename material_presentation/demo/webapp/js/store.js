@@ -28,9 +28,9 @@
   function emptyState() {
     return {
       estado: 'TRANCADA', evento: 'Dispositivo iniciado (trancado)',
-      ultima_tentativa: '—', tls: false,
+      ultima_tentativa: '—', tls: false, mqtt_tls: false,
       temp_dht: 24.0, umid_dht: 55.0, temp_ntc: 24.5,
-      tentativas_http: 0, tentativas_falhas: 0, injecoes_mqtt: 0,
+      tentativas_http: 0, tentativas_falhas: 0, injecoes_mqtt: 0, bloqueios_http: 0,
       log: [], mode: 'mock',
       spark: { temp_dht: [], umid_dht: [], temp_ntc: [] },
     };
@@ -42,6 +42,11 @@
   function MockProvider(store) {
     let s = emptyState(); s.mode = 'mock';
     let relockTimer = null;
+    // rate limiting (ativa junto com a "virada"/TLS): 5 falhas -> bloqueio de 15s
+    const MAX_FALHAS = 5, LOCKOUT_MS = 15000;
+    let falhasSeguidas = 0, bloqueadoAte = 0;
+    // após a virada, a senha padrão deixa de valer (simula troca por senha forte)
+    function senhaValida(p) { return s.tls ? (p === 'S3nh@-Forte-#2026') : (p === 'admin123'); }
 
     function pushLog(canal, tipo, detalhe, exposto) {
       s.log.push({ ts: now(), canal, tipo, detalhe, exposto });
@@ -91,30 +96,60 @@
       login(usuario, senha) {
         s.tentativas_http++;
         const exposto = !s.tls;
-        if (usuario === 'admin' && senha === 'admin123') {
+        // rate limiting (só faz efeito com a defesa ligada): bloqueia após MAX_FALHAS
+        if (s.tls && Date.now() < bloqueadoAte) {
+          s.bloqueios_http++;
+          s.evento = `[${now()}] tentativa bloqueada (rate limiting)`;
+          pushLog('HTTP', 'BLOQUEIO', 'muitas tentativas (429)', false);
+          commit();
+          return { ok: false, blocked: true };
+        }
+        if (usuario === 'admin' && senhaValida(senha)) {
+          falhasSeguidas = 0;
           s.ultima_tentativa = exposto ? `HTTP usuario=${usuario} senha=${senha}` : 'login (cifrado)';
           abrir(`HTTP/login (usuario=${usuario})`, 'HTTP', exposto);
           return { ok: true };
         }
         s.ultima_tentativa = exposto ? `HTTP usuario=${usuario} senha=${senha}` : 'login (cifrado)';
         negar('HTTP', `usuario=${usuario} senha=${senha}`, exposto);
+        if (s.tls && ++falhasSeguidas >= MAX_FALHAS) {
+          bloqueadoAte = Date.now() + LOCKOUT_MS;
+          falhasSeguidas = 0; s.bloqueios_http++;
+          s.evento = `[${now()}] IP BLOQUEADO (${LOCKOUT_MS / 1000}s) por brute force`;
+          pushLog('HTTP', 'BLOQUEIO', `lockout ${LOCKOUT_MS / 1000}s`, false);
+          commit();
+        }
         return { ok: false };
       },
       // simulacoes de ataque para a apresentacao (botoes do rodape)
-      injectMqtt() { s.injecoes_mqtt++; abrir('MQTT (casa/porta)', 'MQTT', !s.tls); },
+      injectMqtt() {
+        // com a virada, o broker exige auth/TLS: a injeção anônima é REJEITADA
+        if (s.mqtt_tls) {
+          s.evento = `[${now()}] injeção MQTT rejeitada (broker exige auth/TLS)`;
+          pushLog('MQTT', 'NEGAR', 'publish anônimo rejeitado', false);
+          commit();
+          return;
+        }
+        s.injecoes_mqtt++; abrir('MQTT (casa/porta)', 'MQTT', !s.mqtt_tls);
+      },
       simBrute() {
-        const senhas = ['123456', 'admin', 'password', 'qwerty', 'admin123'];
+        // no insecure, admin123 abre; após a virada, nenhuma da lista vale -> lockout
+        const senhas = ['123456', 'admin', 'password', 'qwerty', 'admin123', 'root', 'senha'];
         let i = 0;
         const iv = setInterval(() => {
+          if (i >= senhas.length) { clearInterval(iv); return; }
           const p = senhas[i++];
-          this.login('admin', p);
-          if (p === 'admin123' || i >= senhas.length) clearInterval(iv);
-        }, 500);
+          const r = this.login('admin', p);
+          if (r.ok || r.blocked) clearInterval(iv);
+        }, 450);
       },
       toggleTls() {
         s.tls = !s.tls;
-        s.evento = `[${now()}] ${s.tls ? 'TLS/HTTPS ativado (virada)' : 'voltou a HTTP sem TLS'}`;
-        pushLog('SYS', s.tls ? 'ABRIR' : 'FECHAR', s.tls ? 'defesa: TLS + senha forte' : 'inseguro (demo)', false);
+        s.mqtt_tls = s.tls;                 // a virada liga TLS+auth nos dois canais
+        falhasSeguidas = 0; bloqueadoAte = 0;
+        s.evento = `[${now()}] ${s.tls ? 'VIRADA: TLS + senha forte + rate limiting + auth MQTT' : 'voltou ao modo inseguro (demo)'}`;
+        pushLog('SYS', s.tls ? 'ABRIR' : 'FECHAR',
+          s.tls ? 'defesa: TLS + senha forte + rate limiting + auth' : 'inseguro (demo)', false);
         commit();
       },
     };

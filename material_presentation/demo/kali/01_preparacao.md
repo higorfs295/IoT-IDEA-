@@ -84,9 +84,20 @@ Além do comando de porta, o dispositivo agora **publica temperatura/umidade** e
 mosquitto_sub -h <IP_KALI> -t casa/telemetria -v
 ```
 
+## Novidade v3 — observabilidade (`/metrics`)
+
+O dispositivo expõe métricas no **formato Prometheus** — útil para mostrar o tema de
+Observabilidade (Volume VI do dossiê) e para verificar contadores ao vivo:
+```bash
+curl http://<IP_VM_ESP32>/metrics
+# iot_porta_trancada, iot_tentativas_http_total, iot_falhas_login_total,
+# iot_bloqueios_http_total, iot_temperatura_celsius{sensor=...}, iot_tls_ativo ...
+```
+
 ## Checklist rápido
 - [ ] `ping <IP_VM_ESP32>` responde
 - [ ] `curl http://<IP_VM_ESP32>/` mostra o painel (agora com telemetria/placar)
 - [ ] `mosquitto_sub -t casa/telemetria -v` recebe leituras
-- [ ] `--self-test` retorna PRONTO
+- [ ] `curl http://<IP_VM_ESP32>/metrics` retorna métricas Prometheus
+- [ ] `--self-test` retorna PRONTO (checa HTTP, MQTT, telemetria e `/metrics`)
 - [ ] wordlist com `admin123`

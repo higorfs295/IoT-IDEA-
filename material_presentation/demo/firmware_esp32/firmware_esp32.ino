@@ -1,7 +1,7 @@
 /*
- * firmware_esp32.ino  (v2) — "Fechadura/Camera IoT" — Seminario G6
+ * firmware_esp32.ino  (v3) — "Fechadura/Camera IoT" — Seminario G6
  * =========================================================================
- * Equivalente FISICO do dispositivo_iot.py (v2). Canais + telemetria:
+ * Equivalente FISICO do dispositivo_iot.py (v3). Canais + telemetria:
  *   1) HTTP : painel web com login (admin/admin)  -> alvo do brute force (hydra)
  *   2) MQTT : assina 'casa/porta' (comando)  e  PUBLICA 'casa/telemetria'
  *             com leituras REAIS de DHT22 (temp+umid) e NTC 10k (temp).
@@ -10,7 +10,14 @@
  *   MODO_ATUADOR=true  -> RELE + LED verde + BUZZER
  *   MODO_ATUADOR=false -> apenas Serial/pagina ("so tela")
  *
- * >>> INSEGURO DE PROPOSITO (HTTP sem TLS, senha padrao, MQTT sem auth). <<<
+ * Novidades da v3 (a "virada" agora e CODIGO, nao so comentario):
+ *   - #define MODO_SEGURO alterna entre INSEGURO (atos 1-2) e a DEFESA:
+ *       MODO_SEGURO=true  -> MQTT sobre TLS (8883) + user/senha + senha forte
+ *                            no painel + rate limiting (lockout) no login.
+ *   - Rate limiting HTTP: apos MAX_FALHAS_LOGIN, o login responde 429 por LOCKOUT_MS.
+ *
+ * >>> Por padrao (MODO_SEGURO=false) e INSEGURO DE PROPOSITO
+ *     (HTTP sem TLS, senha padrao, MQTT sem auth, sem rate limiting). <<<
  * Rede isolada, apenas contra o proprio dispositivo do grupo.
  *
  * -------------------------------------------------------------------------
@@ -26,24 +33,52 @@
  * =========================================================================
  */
 
+// ===================== MODO DA DEMO =====================
+// false = INSEGURO (atos 1-2): HTTP sem TLS, senha padrao, MQTT 1883 anonimo, sem lockout.
+// true  = VIRADA (defesa): MQTT sobre TLS (8883) + user/senha, senha forte e rate limiting.
+#define MODO_SEGURO false
+
 #include <WiFi.h>
 #include <WebServer.h>
 #include <PubSubClient.h>
 #include <DHT.h>
 #include <math.h>
+#if MODO_SEGURO
+  #include <WiFiClientSecure.h>          // TLS no cliente MQTT (virada)
+#endif
 
 // ===================== CONFIGURACAO (PREENCHER) =====================
 const char* WIFI_SSID   = "<SSID_REDE_ISOLADA>";
 const char* WIFI_PASS   = "<SENHA_WIFI>";
 
 const char* MQTT_BROKER = "<IP_KALI>";     // broker mosquitto roda na Kali
-const int   MQTT_PORT   = 1883;            // 1883 = sem TLS (demo)
 const char* TOPIC_CMD   = "casa/porta";        // recebe comandos
 const char* TOPIC_TEL   = "casa/telemetria";   // publica temp/umid
 const char* MQTT_CLIENTID = "fechadura-g6";
 
 const char* PAINEL_USER = "admin";
-const char* PAINEL_PASS = "admin123";      // padrao/fraca de proposito
+
+#if MODO_SEGURO
+  // ---- Virada: canal e credenciais seguros ----
+  const int   MQTT_PORT = 8883;                    // TLS
+  const char* MQTT_USER = "iot_user";              // definido com mosquitto_passwd
+  const char* MQTT_PASS = "<SENHA_DO_BROKER>";
+  const char* PAINEL_PASS = "S3nh@-Forte-#2026";   // senha forte e unica
+  // CA que assinou o certificado do broker (cole o conteudo de ca.crt):
+  static const char* CA_CERT = R"EOF(
+-----BEGIN CERTIFICATE-----
+<COLE_AQUI_O_CONTEUDO_DE_ca.crt_GERADO_NA_KALI>
+-----END CERTIFICATE-----
+)EOF";
+  const int MAX_FALHAS_LOGIN = 5;                  // rate limiting ligado
+#else
+  // ---- Inseguro de proposito (atos 1-2) ----
+  const int   MQTT_PORT = 1883;                    // sem TLS
+  const char* PAINEL_PASS = "admin123";            // padrao/fraca de proposito
+  const int MAX_FALHAS_LOGIN = 0;                  // 0 = sem rate limiting
+#endif
+
+const unsigned long LOCKOUT_MS = 30000;            // bloqueio de 30s ao estourar o limite
 
 #define MODO_ATUADOR true                  // true=fisico, false=so tela
 
@@ -71,8 +106,12 @@ const unsigned long TELEMETRIA_MS  = 3000; // publica a cada 3s
 // ===================================================================
 
 WebServer server(80);
-WiFiClient wifiClient;
-PubSubClient mqtt(wifiClient);
+#if MODO_SEGURO
+  WiFiClientSecure netClient;   // TLS
+#else
+  WiFiClient       netClient;   // texto claro (demo)
+#endif
+PubSubClient mqtt(netClient);
 DHT dht(PIN_DHT, DHT_TIPO);
 
 bool          portaAberta = false;
@@ -80,8 +119,12 @@ unsigned long abertaDesde = 0;
 unsigned long ultimaTel   = 0;
 String        ultimoEvento = "Dispositivo iniciado (trancado)";
 String        ultimaTentativa = "-";
-unsigned long cntHttp = 0, cntFalhas = 0, cntInj = 0;
+unsigned long cntHttp = 0, cntFalhas = 0, cntInj = 0, cntBloqueios = 0;
 float tDht = NAN, uDht = NAN, tNtc = NAN;
+
+// rate limiting do login HTTP (ativo apenas no MODO_SEGURO)
+int           falhasSeguidas = 0;
+unsigned long bloqueadoAte   = 0;
 
 // ---------------------- Atuadores ----------------------
 void aplicarRele(bool aberto) {
@@ -146,7 +189,7 @@ String pagina() {
   h += "<p>DHT22: <b>" + String(tDht,1) + " C</b> / <b>" + String(uDht,1) + " %</b>";
   h += " &nbsp; NTC: <b>" + String(tNtc,1) + " C</b></p>";
   h += "<p>Tentativas HTTP: " + String(cntHttp) + " | falhas: " + String(cntFalhas)
-       + " | injecoes MQTT: " + String(cntInj) + "</p>";
+       + " | injecoes MQTT: " + String(cntInj) + " | bloqueios: " + String(cntBloqueios) + "</p>";
   h += "<p><b>Ultima tentativa:</b> <code>" + ultimaTentativa + "</code></p>";
   h += "<form method='POST' action='/login'>";
   h += "Usuario:<br><input name='usuario' value='admin'><br><br>";
@@ -165,15 +208,29 @@ void handleStatus() {
 }
 void handleLogin() {
   cntHttp++;
+  // rate limiting: se bloqueado, responde 429 sem processar (defesa anti-brute-force)
+  if (MAX_FALHAS_LOGIN > 0 && millis() < bloqueadoAte) {
+    cntBloqueios++;
+    server.send(429, "text/html",
+      "<h1 style='color:#b4442e'>MUITAS TENTATIVAS</h1><p>IP bloqueado. Tente mais tarde.</p>");
+    return;
+  }
   String u = server.hasArg("usuario") ? server.arg("usuario") : "";
   String p = server.hasArg("senha")   ? server.arg("senha")   : "";
   ultimaTentativa = "HTTP usuario=" + u + " senha=" + p;   // exposto (HTTP)
   if (u == PAINEL_USER && p == PAINEL_PASS) {
+    falhasSeguidas = 0;
     abrirPorta("HTTP/login (usuario=" + u + ")");
     server.send(200, "text/html",
       "<h1 style='color:#2e7d5b'>ACESSO LIBERADO</h1><a href='/'>voltar</a>");
   } else {
     negarAcesso("HTTP/login");
+    // conta a falha e, atingindo o limite, aplica bloqueio temporario
+    if (MAX_FALHAS_LOGIN > 0 && ++falhasSeguidas >= MAX_FALHAS_LOGIN) {
+      bloqueadoAte = millis() + LOCKOUT_MS;
+      falhasSeguidas = 0;
+      Serial.printf("[sec] rate limit: bloqueio de %lus por brute force\n", LOCKOUT_MS/1000);
+    }
     server.send(401, "text/html",
       "<h1 style='color:#b4442e'>ACESSO NEGADO</h1><p>Senha incorreta.</p><a href='/'>voltar</a>");
   }
@@ -194,7 +251,12 @@ void reconectarMqtt() {
   int t=0;
   while (!mqtt.connected() && t<3) {
     Serial.print("[mqtt] conectando... ");
-    if (mqtt.connect(MQTT_CLIENTID)) {  // sem auth (demo)
+#if MODO_SEGURO
+    bool ok = mqtt.connect(MQTT_CLIENTID, MQTT_USER, MQTT_PASS);  // TLS + auth (virada)
+#else
+    bool ok = mqtt.connect(MQTT_CLIENTID);                        // sem auth (demo)
+#endif
+    if (ok) {
       Serial.println("ok");
       mqtt.subscribe(TOPIC_CMD);
       Serial.printf("[mqtt] assinando '%s', publicando '%s'\n", TOPIC_CMD, TOPIC_TEL);
@@ -231,6 +293,12 @@ void setup() {
   server.begin();
   Serial.println("[http] painel na porta 80 (POST /login)");
 
+#if MODO_SEGURO
+  netClient.setCACert(CA_CERT);   // valida o certificado do broker (TLS)
+  Serial.println("[sec] MODO_SEGURO: MQTT sobre TLS (8883) + auth + senha forte + rate limiting");
+#else
+  Serial.println("[sec] MODO INSEGURO (demo): HTTP sem TLS, MQTT 1883 anonimo, sem rate limiting");
+#endif
   mqtt.setServer(MQTT_BROKER, MQTT_PORT);
   mqtt.setCallback(onMqtt);
   reconectarMqtt();
@@ -250,12 +318,16 @@ void loop() {
 }
 
 /* =========================================================================
- * VIRADA (DEFESA) — versao segura (resumo; validar na sua versao)
- *   1) MQTT sobre TLS:
- *        #include <WiFiClientSecure.h>
- *        WiFiClientSecure sec; sec.setCACert(CA_CERT);
- *        PubSubClient mqtt(sec); mqtt.setServer(MQTT_BROKER, 8883);
- *        mqtt.connect(MQTT_CLIENTID, "iot_user", "<senha>");
- *   2) HTTP -> HTTPS: servir o painel sob TLS (lib de servidor seguro ou proxy).
- *   3) Senha forte: trocar PAINEL_PASS por senha longa e unica.
+ * VIRADA (DEFESA) — como ativar
+ *   1) Troque no topo:  #define MODO_SEGURO true
+ *   2) Cole em CA_CERT o conteudo do ca.crt gerado na Kali (kali/04 ou harden.sh),
+ *      e defina MQTT_USER / MQTT_PASS iguais aos do broker.
+ *   3) Recompile e regrave. O firmware passa a:
+ *        - conectar em MQTT 8883 sobre TLS, validando o certificado do broker;
+ *        - autenticar no broker (rejeita injecao anonima do mosquitto_pub);
+ *        - exigir a senha forte no painel (barra o hydra);
+ *        - aplicar rate limiting no login (429 apos MAX_FALHAS_LOGIN).
+ *   OBS: o painel continua em HTTP; para HTTPS de servidor no ESP32, use um
+ *        proxy TLS ou lib de servidor seguro (fora do escopo deste esqueleto).
+ *   RESSALVA: esqueleto a compilar/validar no seu core arduino-esp32.
  * ========================================================================= */

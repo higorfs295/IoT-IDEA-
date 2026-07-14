@@ -77,6 +77,11 @@ O NTC sozinho não gera tensão legível; monte um divisor com o resistor de 10k
 Veja `COMPONENTES.svg` para a visão de blocos (dispositivo, sensores, atuadores,
 rede, atacante). Renderiza como imagem em qualquer visualizador de SVG.
 
+## Modo seguro (virada)
+A pinagem é a **mesma** nos dois modos. A virada é só software: `#define MODO_SEGURO true`
+no topo do `firmware_esp32.ino` liga MQTT sobre TLS (8883) + autenticação + senha forte +
+rate limiting — cole a `ca.crt` (gerada por `kali/harden.sh`) em `CA_CERT` e recompile.
+
 ## Dicas
 - Alimente o ESP32 pelo **micro-USB** durante a demo (estável).
 - Relé de 4 canais também serve — use 1 canal.

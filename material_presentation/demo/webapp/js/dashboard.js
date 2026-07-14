@@ -22,7 +22,7 @@
     svg.innerHTML = `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2"/>`;
   }
 
-  let last = { http: 0, fail: 0, inj: 0 };
+  let last = { http: 0, fail: 0, inj: 0, block: 0 };
   function flash(el) { if (!el) return; el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 500); }
 
   function render(s) {
@@ -43,7 +43,8 @@
     if ($('k_http')) { $('k_http').textContent = s.tentativas_http; if (s.tentativas_http !== last.http) flash($('kpi_http')); }
     if ($('k_fail')) { $('k_fail').textContent = s.tentativas_falhas; if (s.tentativas_falhas !== last.fail) flash($('kpi_fail')); }
     if ($('k_inj')) { $('k_inj').textContent = s.injecoes_mqtt; if (s.injecoes_mqtt !== last.inj) flash($('kpi_inj')); }
-    last = { http: s.tentativas_http, fail: s.tentativas_falhas, inj: s.injecoes_mqtt };
+    if ($('k_block')) { $('k_block').textContent = s.bloqueios_http || 0; if ((s.bloqueios_http || 0) !== last.block) flash($('kpi_block')); }
+    last = { http: s.tentativas_http, fail: s.tentativas_falhas, inj: s.injecoes_mqtt, block: s.bloqueios_http || 0 };
 
     const ult = $('ult');
     if (ult) { ult.textContent = s.ultima_tentativa; ult.className = s.tls ? 'prot' : 'exp'; }

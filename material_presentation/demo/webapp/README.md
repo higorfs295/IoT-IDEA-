@@ -58,27 +58,31 @@ webapp/
 ## O que cada tela mostra
 - **Dashboard (`index.html`):** estado da trava (🔒/🔓, verde/vermelho), telemetria
   (DHT22 temp/umidade + NTC) com mini-gráficos, **placar de ataque** (tentativas HTTP,
-  falhas, injeções MQTT), "última tentativa" e o **log** com marcação
-  *VISTO pelo atacante* × *protegido*.
+  falhas, injeções MQTT e **bloqueios** — rate limiting), "última tentativa" e o **log** com
+  marcação *VISTO pelo atacante* × *protegido*.
 - **Login (`login.html`):** identidade do dispositivo + formulário; avisa que é
   **HTTP sem TLS**. No mock vai para `resultado.html`; no live faz `POST /login`.
 - **Resultado (`resultado.html`):** confirma acesso liberado/negado.
 
 ## Controles de demonstração (rodapé do dashboard, só no modo demo)
-- **injetar MQTT** — simula `mosquitto_pub casa/porta abrir` (a porta abre).
-- **simular brute force** — simula o `hydra` testando senhas até `admin123`.
-- **ligar/desligar TLS** — simula a "virada": o rótulo muda para HTTPS·TLS e as
-  credenciais passam a aparecer como "protegido" no log.
+- **injetar MQTT** — simula `mosquitto_pub casa/porta abrir` (a porta abre). **Após a virada**
+  (TLS ligado), a injeção anônima é **rejeitada** (broker exige auth/TLS) e a porta não abre.
+- **simular brute force** — simula o `hydra` testando senhas. No modo inseguro `admin123`
+  abre; **após a virada**, a senha padrão não vale mais e, após 5 falhas, o IP é **bloqueado**
+  (rate limiting) — o placar de **bloqueios** sobe e o log marca *BLOQUEIO*.
+- **ligar/desligar TLS** — simula a **virada** completa: liga TLS + senha forte + rate limiting
+  + auth no MQTT. O rótulo muda para **HTTPS·TLS** e as credenciais passam a *protegido* no log.
 
 > No **modo conectado**, esses botões não agem localmente — os ataques reais vêm do
-> Kali (`hydra`, `mosquitto_pub`) e a virada é feita no broker/dispositivo.
+> Kali (`hydra`, `mosquitto_pub`) e a virada é feita no broker/dispositivo (`harden.sh` +
+> flags `--max-fails`/`--mqtt-tls`).
 
 ## Integração com o dispositivo real
 As chaves do JSON de `/state` esperadas do `dispositivo_iot.py` são:
-`estado, evento, ultima_tentativa, tls, temp_dht, umid_dht, temp_ntc,
-tentativas_http, tentativas_falhas, injecoes_mqtt, log[]`
+`estado, evento, ultima_tentativa, tls, mqtt_tls, temp_dht, umid_dht, temp_ntc,
+tentativas_http, tentativas_falhas, injecoes_mqtt, bloqueios_http, log[]`
 (cada item de `log`: `ts, canal, tipo, detalhe, exposto`). O dispositivo já entrega
-exatamente esse formato.
+exatamente esse formato. Há também `GET /metrics` (formato Prometheus) para observabilidade.
 
 ## Ressalvas honestas
 - É **front-end**. O comportamento real (abrir a trava física, MQTT, ser atacado pelo

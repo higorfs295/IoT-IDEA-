@@ -19,6 +19,24 @@ Esta demonstração é executada **exclusivamente em rede isolada e contra o pr�
 
 ---
 
+## Novidades da versão 3 do pacote
+
+- **Rate limiting anti-brute-force (defesa demonstrável no simulado):** o dispositivo
+  passa a bloquear o IP após *N* falhas de login (`--max-fails`/`--lockout`), respondendo
+  **HTTP 429**. Assim a defesa do Cenário A não fica só "no discurso" — o `hydra` é
+  visivelmente barrado, com placar de **bloqueios** subindo ao vivo.
+- **MQTT com autenticação + TLS no cliente** (`--mqtt-user/--mqtt-pass/--mqtt-tls/--cafile`):
+  fecha a lacuna honesta da v2 — agora o **alvo continua recebendo comandos legítimos**
+  após a virada do broker, e a injeção anônima é rejeitada.
+- **Firmware: a virada virou código** — `#define MODO_SEGURO true` liga MQTT sobre TLS
+  (8883) + auth + senha forte + rate limiting no ESP32 (antes era só comentário).
+- **Endpoint `/metrics` (Prometheus)** no dispositivo — conecta a demo ao tema de
+  **Observabilidade** (Volume VI do dossiê): dá para "scrapear" com `curl` ou Prometheus.
+- **`kali/harden.sh`** — automatiza a virada do broker (gera CA/cert, cria usuário,
+  reconfigura o mosquitto para 8883+auth e testa), reduzindo a parte que mais toma tempo.
+- **Correção:** o `snapshot` do dispositivo agora expõe `tls`/`mqtt_tls`, então o rótulo do
+  painel realmente alterna para **HTTPS · TLS** e o log marca as credenciais como *protegido*.
+
 ## Novidades da versão 2 do pacote
 
 - **Dashboard web redesenhado** (tema escuro tecnológico, azul/ciano): herói da trava
@@ -40,9 +58,10 @@ Esta demonstração é executada **exclusivamente em rede isolada e contra o pr�
 | `/` | GET | **Dashboard** ao vivo (monitoramento + login embutido) |
 | `/login` | GET | **Tela de login** dedicada (visual "câmera IoT") |
 | `/login` | POST | processa o login → destrava ou "Senha incorreta" (alvo do `hydra`) |
-| `/state` | GET | JSON do estado (telemetria, placar, log) |
+| `/state` | GET | JSON do estado (telemetria, placar, log, `tls`/`mqtt_tls`) |
 | `/events` | GET | fluxo **SSE** que alimenta o dashboard ao vivo |
 | `/status` | GET | texto simples (para telão/monitor) |
+| `/metrics` | GET | **métricas no formato Prometheus** (v3 · Observabilidade) |
 | `/healthz` | GET | usado pelo `--self-test` |
 
 > **Dica de palco:** projete o **dashboard** (`/`) — o placar e o log reagindo aos ataques
@@ -58,9 +77,33 @@ Esta demonstração é executada **exclusivamente em rede isolada e contra o pr�
 | Interceptação | Dados/comando trafegam em texto claro | Comunicação insegura · Confidencialidade (tríade CIA) |
 | Brute force (HTTP) | Senha padrão `admin/admin` cai rápido | Credenciais padrão · Broken authentication |
 | Injeção (MQTT) | Qualquer um publica o comando `abrir` | Serviço sem autenticação · Broken authentication |
-| Virada (defesa) | TLS + senha forte + auth no broker | Criptografia protege o transporte, **mas não substitui autenticação** |
+| Virada (defesa) | TLS + senha forte + **rate limiting** + auth no broker | Defesa em camadas — criptografia **não** substitui autenticação |
 
-**Mensagem-chave:** criptografia (HTTPS/TLS) resolve a **interceptação**, mas **senha forte** e **autenticação no broker** é que resolvem brute force e injeção. Segurança é em camadas.
+**Mensagem-chave:** criptografia (HTTPS/TLS) resolve a **interceptação**, mas **senha forte + rate limiting** e **autenticação no broker** é que resolvem brute force e injeção. Segurança é em camadas.
+
+### 1.1 Modelo de ameaças (STRIDE) desta demo
+
+Cada ato mapeia diretamente uma categoria do STRIDE (ver Volume V do dossiê):
+
+| STRIDE | Ameaça na demo | Ato | Defesa aplicada na virada |
+|--------|----------------|-----|----------------------------|
+| **S**poofing | `mosquitto_pub` anônimo se passa pelo app legítimo | Injeção MQTT | Autenticação no broker (user/senha, idealmente mTLS) |
+| **T**ampering | Comando `abrir` forjado/repetido altera o estado | Injeção MQTT | Auth + integridade sob TLS |
+| **R**epudiation | Ação sem registro atribuível | (log) | Log de eventos + auditoria |
+| **I**nformation Disclosure | Wireshark lê senha e telemetria em claro | Interceptação | TLS/HTTPS (transporte cifrado) |
+| **D**enial of Service | Brute force satura o login | Brute force HTTP | Rate limiting / lockout (429) |
+| **E**levation of Privilege | Senha padrão dá acesso admin | Brute force HTTP | Senha forte e única |
+
+```mermaid
+flowchart LR
+    S["S · Spoofing"] --> AUTH["Auth no broker"]
+    T["T · Tampering"] --> AUTH
+    I["I · Info Disclosure"] --> TLS["TLS / HTTPS"]
+    D["D · DoS (brute force)"] --> RL["Rate limiting"]
+    E["E · Elevation (senha padrão)"] --> PW["Senha forte"]
+    AUTH & TLS & RL & PW --> OK["Defesa em camadas"]
+    style OK fill:#e8ffe8,stroke:#28a745
+```
 
 ---
 
@@ -178,7 +221,7 @@ sequenceDiagram
 ```mermaid
 flowchart TD
     P1["Interceptação<br/>(dados em claro)"] -->|resolve| TLS["TLS/HTTPS<br/>criptografa o transporte"]
-    P2["Brute force<br/>(senha padrão)"] -->|resolve| PW["Senha forte<br/>+ limite de tentativas"]
+    P2["Brute force<br/>(senha padrão)"] -->|resolve| PW["Senha forte<br/>+ rate limiting (429)"]
     P3["Injeção MQTT<br/>(sem auth)"] -->|resolve| AUTH["Autenticação no broker<br/>(user/senha, idealmente mTLS)"]
     TLS --> OK["Dispositivo mais seguro<br/>(defesa em camadas)"]
     PW --> OK
@@ -187,6 +230,22 @@ flowchart TD
     style P1 fill:#f8d7da,stroke:#dc3545
     style P2 fill:#f8d7da,stroke:#dc3545
     style P3 fill:#f8d7da,stroke:#dc3545
+```
+
+### 3.5 Máquina de estados da trava (com rate limiting)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Trancada
+    Trancada --> Aberta: login correto OU MQTT 'abrir'
+    Aberta --> Trancada: auto-relock (8s) OU MQTT 'fechar'
+    Trancada --> Trancada: login incorreto (conta falha)
+    Trancada --> Bloqueada: falhas >= max-fails
+    Bloqueada --> Trancada: fim do lockout (HTTP 429 até lá)
+    note right of Bloqueada
+        v3: rate limiting
+        responde 429 mesmo à senha correta
+    end note
 ```
 
 ---
@@ -240,12 +299,29 @@ flowchart TD
 - Resultado esperado: o dispositivo **destrava** (relé/tela) sem qualquer credencial → "não havia porteiro".
 
 ### 4.5 A virada (defesa) — repetir e falhar
-1. **TLS**: reconfigurar mosquitto e o cliente do dispositivo para **MQTT sobre TLS**; no web, migrar para **HTTPS**.
-2. **Autenticação**: exigir usuário/senha no broker; trocar `admin/admin` por **senha forte** no painel.
-3. Repetir 4.1–4.4:
+**Atalho (v3):** na Kali, `sudo bash kali/harden.sh <IP_KALI>` faz a virada do broker
+(gera CA/cert, cria usuário, religa o mosquitto em **8883 + auth** e testa). Depois, suba o
+alvo no modo seguro.
+
+1. **TLS**: `harden.sh` reconfigura o mosquitto para **MQTT sobre TLS**; o dispositivo passa a
+   falar TLS/auth (`--mqtt-tls --cafile ca.crt --mqtt-user/--mqtt-pass`); no web, `--tls` (HTTPS).
+2. **Autenticação + senha forte**: broker exige usuário/senha; painel com `--password "…forte…"`.
+3. **Rate limiting**: `--max-fails 5 --lockout 30` (simulado) ou `MODO_SEGURO=true` (firmware)
+   passam a responder **HTTP 429** após poucas falhas — o `hydra` é barrado mesmo sem senha forte.
+4. Repetir 4.1–4.4:
    - Wireshark agora mostra **conteúdo cifrado** (interceptação falha);
-   - `hydra` **não** quebra a senha forte;
-   - `mosquitto_pub` anônimo é **rejeitado** pelo broker.
+   - `hydra` **não** quebra a senha forte **e** é bloqueado pelo rate limiting;
+   - `mosquitto_pub` anônimo é **rejeitado** pelo broker;
+   - o **placar de bloqueios** sobe ao vivo e o log marca tudo como *protegido*.
+
+Comando do alvo simulado após a virada (equivalente ao que o `harden.sh` imprime):
+```bash
+python3 dispositivo_iot.py --broker <IP_KALI> --http-port 443 \
+  --tls --certfile dev.crt --keyfile dev.key --password "S3nh@-Forte" \
+  --max-fails 5 --lockout 30 \
+  --mqtt-port 8883 --mqtt-tls --cafile ~/mqtt-tls/ca.crt \
+  --mqtt-user iot_user --mqtt-pass "<senha>"
+```
 
 ### 4.5-b "Dispositivo-processo" (versão simulada, na VM dedicada)
 - Roda na **`VM ESP32-simulado`** (`<IP_VM_ESP32>`) — um único script/serviço que:
@@ -262,6 +338,7 @@ flowchart TD
   - para a virada: `WiFiClientSecure` (TLS) no MQTT e HTTPS no web.
 - O cliente MQTT do ESP32 aponta para o **broker na Kali** (`<IP_KALI>`), igual à versão simulada — o playbook de ataque é o mesmo, só muda o IP do alvo.
 - **Um flag `MODO_ATUADOR`** liga/desliga os pinos físicos — assim o **mesmo firmware** serve para a versão física e para uma versão "só tela".
+- **Um flag `MODO_SEGURO`** (v3) faz a **virada em código**: `true` liga MQTT sobre TLS (8883) + `MQTT_USER`/`MQTT_PASS` + senha forte no painel + rate limiting no login. Basta colar a `ca.crt` (gerada pelo `harden.sh`) em `CA_CERT` e recompilar.
 
 ---
 
@@ -310,16 +387,21 @@ flowchart TD
 - **Ato de interceptação exige HTTP/MQTT sem TLS** — é o ponto pedagógico; a virada ativa o TLS.
 - **Sintaxe não garantida de cabeça:** confirme na documentação atual `hydra` (`http-post-form`), `mosquitto` (TLS/auth), Wireshark (filtros) e ESP32 (`WebServer`, `PubSubClient`, `WiFiClientSecure`).
 - **Clonagem de UID RFID** (outra opção discutida) **não** faz parte desta demo — ficou de fora por não ser garantida sem cartão "mágico".
+- **v3 — o que ficou completo:** o alvo simulado agora **fala MQTT com TLS/auth** e aplica **rate limiting**, então a virada é demonstrável 100% no simulado (antes o simulado não fechava o lado MQTT-TLS). O `dispositivo_iot.py` foi **testado** (login, 401→429 do lockout, `/metrics`, `--tls`). O `firmware_esp32.ino` segue **esqueleto a compilar/validar** — o `MODO_SEGURO` é código real, mas não foi compilado aqui.
+- **HTTPS de servidor no ESP32 continua fora de escopo:** para o painel do ESP32 em HTTPS use um proxy TLS ou lib de servidor seguro. No simulado, `--tls` já entrega o painel em HTTPS de verdade.
 
 ---
 
 ## 8. Referências para embasar a demo
 
 - OWASP Internet of Things Project · OWASP IoT Top 10 (2018)
-- NIST — IoT Cybersecurity (NIST IR 8259)
-- ETSI EN 303 645 — Cyber Security for Consumer IoT
+- OWASP API Security Top 10 (2023) — item **Broken Authentication** (brute force/injeção)
+- NIST — IoT Cybersecurity (NIST IR 8259) · NIST SP 800-82 (OT/ICS)
+- ETSI EN 303 645 — Cyber Security for Consumer IoT (proíbe senha universal)
 - CISA — Secure by Design
 - Documentação: MQTT (OASIS), TLS 1.3 (RFC 8446), HTTP/HTTPS (MDN/IETF)
-- Documentação oficial: Eclipse Mosquitto, Wireshark, Hydra, Arduino-ESP32
+- Documentação oficial: Eclipse Mosquitto, Wireshark, Hydra, Arduino-ESP32, Prometheus (formato de exposição)
+
+> **Ponte com o dossiê:** esta demo instancia os Volumes **III** (TLS/MQTT), **V** (ataques/STRIDE/OWASP), **VI** (`/metrics` · Observabilidade) e **VII** (senha forte, Secure by Default) do *Dossiê Técnico de Segurança em IoT*.
 
 > *Ajustar a formatação das referências ao padrão exigido pela disciplina (ex.: ABNT NBR 6023).*

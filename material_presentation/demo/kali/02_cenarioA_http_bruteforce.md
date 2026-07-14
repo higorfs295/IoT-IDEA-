@@ -57,6 +57,7 @@ Opções úteis:
 - **hydra não acha nada** → verifique o caminho (`/login`), os nomes dos campos (`usuario`, `senha`) e se `admin123` está na wordlist.
 - **porta diferente de 80** → acrescente `-s <porta>` (ex.: `-s 8080`) e ajuste a URL.
 - **HTTPS (após a virada)** → o módulo passa a ser `https-post-form` (a captura em claro deixa de funcionar; a senha forte impede o brute force).
+- **HTTP 429 durante o hydra (após a virada com `--max-fails`)** → é o **rate limiting** agindo: o alvo bloqueou o IP por alguns segundos. Isso é o resultado esperado da defesa — mostre o placar de **bloqueios** subindo no painel.
 
 ## Plano B (sem rede ao vivo)
 Tenha prints: (1) do Wireshark mostrando `senha=admin123`; (2) do hydra reportando a senha encontrada. Narre por eles se a rede falhar.

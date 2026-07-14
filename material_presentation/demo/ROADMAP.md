@@ -35,7 +35,8 @@ flowchart LR
 - [ ] `curl http://<IP_VM_ESP32>/` mostra o painel.
 - [ ] `mosquitto_sub -h <IP_KALI> -t casa/porta -v` recebe um `abrir` de teste.
 - [ ] `mosquitto_sub -h <IP_KALI> -t casa/telemetria -v` recebe telemetria (DHT22/NTC).
-- [ ] `python3 dispositivo_iot.py --broker <IP_KALI> --self-test` retorna PRONTO.
+- [ ] `python3 dispositivo_iot.py --broker <IP_KALI> --self-test` retorna PRONTO (checa HTTP, MQTT, telemetria e `/metrics`).
+- [ ] (Opcional) `curl http://<IP_VM_ESP32>/metrics` mostra as métricas Prometheus.
 - 📄 `dispositivo_vm/dispositivo_iot.py` · `firmware_esp32/`
 
 ### Fase 2 — Cenário A (HTTP)
@@ -51,11 +52,14 @@ flowchart LR
 - 📄 `kali/03_cenarioB_mqtt_injecao.md`
 
 ### Fase 4 — Virada (defesa)
+> Atalho: `sudo bash kali/harden.sh <IP_KALI>` faz a virada do broker (CA/cert + auth + 8883) e testa.
 - [ ] Senha forte aplicada → hydra falha.
-- [ ] Broker com TLS (8883) + auth → injeção anônima rejeitada.
+- [ ] **Rate limiting** ligado no alvo (`--max-fails 5 --lockout 30` no simulado ou `MODO_SEGURO=true` no firmware) → hydra toma **HTTP 429**; placar de **bloqueios** sobe.
+- [ ] Broker com TLS (8883) + auth (`harden.sh`) → injeção anônima rejeitada.
+- [ ] Alvo religado no modo seguro (`--mqtt-tls --cafile ca.crt --mqtt-user/--mqtt-pass`) → publisher legítimo ainda funciona.
 - [ ] Wireshark mostra tráfego **cifrado**.
-- [ ] (Se física) firmware ajustado para TLS, se for demonstrar o legítimo pós-virada.
-- 📄 `kali/04_virada_defesa.md`
+- [ ] (Se física) `#define MODO_SEGURO true` + `CA_CERT` colado, para demonstrar o legítimo pós-virada.
+- 📄 `kali/04_virada_defesa.md` · `kali/harden.sh`
 
 ### Fase 5 — Ensaio + Plano B
 - [ ] Ensaio cronometrado ≤ 10 min (slot da Pessoa 4).
@@ -99,11 +103,12 @@ pacote/
 │   └── gerar_svg.py                   <- regenera os SVGs
 └── kali/
     ├── setup.sh                       <- instala tudo, sobe broker, cria wordlist
+    ├── harden.sh                      <- virada automática do broker (CA/cert + auth + 8883)
     ├── reset.sh                       <- restaura estado entre ensaios
     ├── 01_preparacao.md               <- rede, ferramentas, self-test
     ├── 02_cenarioA_http_bruteforce.md <- interceptação HTTP + hydra
     ├── 03_cenarioB_mqtt_injecao.md    <- interceptação MQTT + injeção
-    └── 04_virada_defesa.md            <- TLS + senha forte + auth
+    └── 04_virada_defesa.md            <- TLS + senha forte + rate limiting + auth
 ```
 
 ## Ressalvas honestas (valem para todo o pacote)

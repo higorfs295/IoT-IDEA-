@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-dispositivo_iot.py  (v2) — "ESP32 simulado" para a demo do Seminario G6
+dispositivo_iot.py  (v3) — "ESP32 simulado" para a demo do Seminario G6
 =======================================================================
 Fechadura/Camera IoT com DOIS canais + TELEMETRIA:
 
@@ -11,29 +11,41 @@ Fechadura/Camera IoT com DOIS canais + TELEMETRIA:
              (temperatura/umidade)  -> alvo da injecao (mosquitto_pub)
              e fonte de dado sensivel para a interceptacao
 
-Novidades da v2:
+Novidades da v3 (defesa completa + observabilidade):
+  - Rate limiting anti-brute-force: --max-fails / --lockout bloqueiam o IP (HTTP 429).
+    => a defesa do Cenario A passa a ser demonstravel TAMBEM no simulado.
+  - MQTT com autenticacao e TLS no cliente: --mqtt-user/--mqtt-pass/--mqtt-tls/--cafile.
+    => o alvo continua recebendo comandos legitimos DEPOIS da virada do broker.
+  - Endpoint /metrics (formato Prometheus) — liga a demo ao tema de Observabilidade.
+  - Placar agora inclui "bloqueios"; snapshot expoe 'tls'/'mqtt_tls' (corrige o rotulo).
+
+Novidades herdadas da v2:
   - Painel web moderno, verde/vermelho, "ultima tentativa de acesso", ao vivo (sem F5).
-  - Placar de ataque em tempo real (tentativas HTTP + injecoes MQTT).
+  - Placar de ataque em tempo real (tentativas HTTP + falhas + injecoes MQTT).
   - Telemetria simulada de DHT22 (temp+umid) e NTC (temp) — equivalente ao firmware.
   - Log didatico: "o que o atacante viu" x "o que estava protegido".
-  - --self-test: confere HTTP/MQTT/telemetria antes de subir ao palco.
+  - --self-test: confere HTTP/MQTT/telemetria/metrics antes de subir ao palco.
   - --tls: painel em HTTPS (certificado autoassinado) para a virada 100% ao vivo.
 
->>> INSEGURO DE PROPOSITO por padrao (HTTP sem TLS, senha padrao, MQTT sem auth).
-    Rode APENAS em rede interna/isolada e contra o proprio dispositivo do grupo.
+>>> INSEGURO DE PROPOSITO por padrao (HTTP sem TLS, senha padrao, MQTT sem auth,
+    sem rate limiting). Rode APENAS em rede interna/isolada e contra o proprio
+    dispositivo do grupo.
 
 Dependencias:
   pip install paho-mqtt        # canal MQTT (web usa apenas a stdlib)
 
-Uso tipico (na VM "ESP32-simulado"):
+Uso tipico — INSEGURO (atos 1-2, na VM "ESP32-simulado"):
   sudo python3 dispositivo_iot.py --broker <IP_KALI> --http-port 80
 
-Virada (defesa) com painel HTTPS ao vivo:
-  # gere um cert autoassinado (uma vez):
+Virada (defesa) — HTTPS + senha forte + rate limiting + MQTT com TLS/auth:
+  # gere um cert autoassinado do painel (uma vez):
   openssl req -x509 -newkey rsa:2048 -nodes -keyout dev.key -out dev.crt \\
           -days 365 -subj "/CN=<IP_VM_ESP32>"
   sudo python3 dispositivo_iot.py --broker <IP_KALI> --http-port 443 \\
-          --tls --certfile dev.crt --keyfile dev.key --password "S3nh@-Forte"
+          --tls --certfile dev.crt --keyfile dev.key --password "S3nh@-Forte" \\
+          --max-fails 5 --lockout 30 \\
+          --mqtt-port 8883 --mqtt-tls --cafile ca.crt \\
+          --mqtt-user iot_user --mqtt-pass "<senha>"
 """
 
 import argparse
@@ -71,11 +83,15 @@ class Estado:
         self.tentativas_http = 0
         self.tentativas_falhas = 0
         self.injecoes_mqtt = 0
+        self.bloqueios_http = 0            # v3: bloqueios por rate limiting
         self.ultimo_evento = "Dispositivo iniciado (trancado)"
         self.ultima_tentativa = "—"
         self.log = []  # lista de dicts: {ts, canal, tipo, detalhe, exposto}
         # assinantes SSE (cada um recebe eventos via fila)
         self.subs = []
+        # v3: rate limiting / lockout anti-brute-force (por IP)
+        self.falhas_por_ip = {}            # ip -> nº de falhas consecutivas
+        self.bloqueado_ate = {}            # ip -> timestamp (epoch) do fim do bloqueio
 
     # -------- eventos para o painel ao vivo (SSE) --------
     def _broadcast(self):
@@ -92,18 +108,55 @@ class Estado:
 
     def snapshot(self):
         with self.lock:
+            # v3: expõe o estado de segurança para o painel (corrige o rótulo TLS)
+            tls = bool(CFG.tls) if CFG else False
+            mqtt_seguro = bool(getattr(CFG, "mqtt_tls", False)) if CFG else False
             return {
                 "estado": "ABERTA" if not self.trancada else "TRANCADA",
                 "evento": self.ultimo_evento,
                 "ultima_tentativa": self.ultima_tentativa,
+                "tls": tls,                        # painel HTTP em HTTPS?
+                "mqtt_tls": mqtt_seguro,           # canal MQTT sobre TLS?
                 "temp_dht": round(self.temp_dht, 1),
                 "umid_dht": round(self.umid_dht, 1),
                 "temp_ntc": round(self.temp_ntc, 1),
                 "tentativas_http": self.tentativas_http,
                 "tentativas_falhas": self.tentativas_falhas,
                 "injecoes_mqtt": self.injecoes_mqtt,
+                "bloqueios_http": self.bloqueios_http,
                 "log": list(self.log[-12:]),
             }
+
+    # -------- rate limiting / lockout (v3) --------
+    def ip_bloqueado(self, ip):
+        """Retorna segundos restantes de bloqueio para o IP (0 = liberado)."""
+        if not CFG or not getattr(CFG, "max_fails", 0):
+            return 0
+        with self.lock:
+            ate = self.bloqueado_ate.get(ip, 0)
+        restante = ate - time.time()
+        return int(restante) if restante > 0 else 0
+
+    def registrar_falha_ip(self, ip):
+        """Conta falha do IP e, atingindo o limite, aplica bloqueio temporário."""
+        if not CFG or not getattr(CFG, "max_fails", 0):
+            return
+        with self.lock:
+            n = self.falhas_por_ip.get(ip, 0) + 1
+            self.falhas_por_ip[ip] = n
+            if n >= CFG.max_fails:
+                self.bloqueado_ate[ip] = time.time() + CFG.lockout
+                self.falhas_por_ip[ip] = 0
+                self.bloqueios_http += 1
+                ts = datetime.datetime.now().strftime("%H:%M:%S")
+                self.ultimo_evento = f"[{ts}] IP {ip} BLOQUEADO ({CFG.lockout}s) por brute force"
+        if self.bloqueado_ate.get(ip, 0) > time.time():
+            self._registrar("HTTP", "BLOQUEIO", f"ip={ip} lockout={CFG.lockout}s", False)
+            self._broadcast()
+
+    def limpar_falhas_ip(self, ip):
+        with self.lock:
+            self.falhas_por_ip.pop(ip, None)
 
     def _registrar(self, canal, tipo, detalhe, exposto):
         ts = datetime.datetime.now().strftime("%H:%M:%S")
@@ -220,10 +273,10 @@ a{color:var(--cyan)}
 .tcell .v{font-size:30px;font-weight:800}.tcell .u{font-size:14px;color:var(--muted);font-weight:600}
 .tcell .k{font-size:11px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:1px}
 .tcell .ic{font-size:18px}
-.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:6px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:12px;margin-top:6px}
 .kpi{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}
 .kpi .n{font-size:28px;font-weight:800}
-.kpi.http .n{color:var(--cyan)}.kpi.fail .n{color:var(--bad)}.kpi.inj .n{color:var(--amber)}
+.kpi.http .n{color:var(--cyan)}.kpi.fail .n{color:var(--bad)}.kpi.inj .n{color:var(--amber)}.kpi.block .n{color:var(--good)}
 .kpi .l{font-size:11px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
 .last{margin-top:14px;background:#0a1f38;border:1px dashed var(--line);border-radius:10px;
   padding:10px 12px;font-family:var(--mono);font-size:13px}
@@ -289,6 +342,7 @@ PAGINA = """<!DOCTYPE html>
         <div class="kpi http"><div class="n" id="k_http">0</div><div class="l">tentativas HTTP</div></div>
         <div class="kpi fail"><div class="n" id="k_fail">0</div><div class="l">falhas login</div></div>
         <div class="kpi inj"><div class="n" id="k_inj">0</div><div class="l">injeções MQTT</div></div>
+        <div class="kpi block"><div class="n" id="k_block">0</div><div class="l">bloqueios</div></div>
       </div>
       <div class="last"><b>última tentativa:</b><br><span id="ult">—</span></div>
     </div>
@@ -310,7 +364,7 @@ PAGINA = """<!DOCTYPE html>
     <tbody id="log"></tbody></table>
   </div>
 </div>
-<div class="foot"><span>Seminário G6 — Segurança em IoT · Internet das Coisas (UFG)</span><span>dispositivo: câmera/fechadura · v2</span></div>
+<div class="foot"><span>Seminário G6 — Segurança em IoT · Internet das Coisas (UFG)</span><span>dispositivo: câmera/fechadura · v3</span></div>
 <script>
 function esc(s){return (s+'').replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
 function apply(s){
@@ -326,6 +380,7 @@ function apply(s){
   document.getElementById('k_http').textContent=s.tentativas_http;
   document.getElementById('k_fail').textContent=s.tentativas_falhas;
   document.getElementById('k_inj').textContent=s.injecoes_mqtt;
+  var kb=document.getElementById('k_block'); if(kb) kb.textContent=s.bloqueios_http||0;
   var ult=document.getElementById('ult');
   ult.textContent=s.ultima_tentativa; ult.className=(s.tls?'prot':'exp');
   document.getElementById('authtag').textContent=s.tls?'HTTPS · TLS':'HTTP · SEM TLS';
@@ -379,7 +434,7 @@ body{display:grid;place-items:center}
     <span class="badge2"><span class="dot"></span> dispositivo online · rede local</span>
     <h1>Câmera IoT<br>Fechadura Inteligente</h1>
     <p>Acesse o painel para monitorar sensores e controlar a trava da porta.</p>
-    <div class="cam"><div class="eye">&#128247;</div><div><b>CAM-G6 / porta principal</b><span>firmware v2 · MQTT + HTTP</span></div></div>
+    <div class="cam"><div class="eye">&#128247;</div><div><b>CAM-G6 / porta principal</b><span>firmware v3 · MQTT + HTTP</span></div></div>
   </div>
   <div class="right2 login">
     <h2>Acesso ao painel <span class="tag">HTTP</span></h2>
@@ -417,6 +472,42 @@ def render_resultado(cor, titulo, klass, icone, msg):
             .replace("@@KLASS@@", klass).replace("@@ICONE@@", icone).replace("@@MSG@@", msg))
 
 
+def render_metrics():
+    """Exposição no formato texto do Prometheus (liga a demo ao tema de Observabilidade).
+    Ex.: scrape com `curl http://<alvo>/metrics` ou por um Prometheus na rede."""
+    s = ESTADO.snapshot()
+    trancada = 1 if s["estado"] == "TRANCADA" else 0
+    linhas = [
+        "# HELP iot_porta_trancada 1=trancada, 0=aberta",
+        "# TYPE iot_porta_trancada gauge",
+        f"iot_porta_trancada {trancada}",
+        "# HELP iot_tentativas_http_total tentativas de login HTTP",
+        "# TYPE iot_tentativas_http_total counter",
+        f"iot_tentativas_http_total {s['tentativas_http']}",
+        "# HELP iot_falhas_login_total logins negados",
+        "# TYPE iot_falhas_login_total counter",
+        f"iot_falhas_login_total {s['tentativas_falhas']}",
+        "# HELP iot_injecoes_mqtt_total comandos MQTT aceitos (abrir/fechar)",
+        "# TYPE iot_injecoes_mqtt_total counter",
+        f"iot_injecoes_mqtt_total {s['injecoes_mqtt']}",
+        "# HELP iot_bloqueios_http_total bloqueios por rate limiting",
+        "# TYPE iot_bloqueios_http_total counter",
+        f"iot_bloqueios_http_total {s['bloqueios_http']}",
+        "# HELP iot_temperatura_celsius leitura de temperatura por sensor",
+        "# TYPE iot_temperatura_celsius gauge",
+        f'iot_temperatura_celsius{{sensor="dht22"}} {s["temp_dht"]}',
+        f'iot_temperatura_celsius{{sensor="ntc"}} {s["temp_ntc"]}',
+        "# HELP iot_umidade_percent umidade relativa (DHT22)",
+        "# TYPE iot_umidade_percent gauge",
+        f"iot_umidade_percent {s['umid_dht']}",
+        "# HELP iot_tls_ativo 1=painel HTTPS, 0=HTTP",
+        "# TYPE iot_tls_ativo gauge",
+        f"iot_tls_ativo {1 if s['tls'] else 0}",
+        "",
+    ]
+    return "\n".join(linhas)
+
+
 # ============================================================ HTTP handler
 class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, *a):  # silencia log padrao
@@ -447,6 +538,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                        f"temp_ntc={s['temp_ntc']}\n", ctype="text/plain; charset=utf-8")
         elif self.path == "/events":
             self._sse()
+        elif self.path == "/metrics":
+            self._send(render_metrics(), ctype="text/plain; version=0.0.4; charset=utf-8")
         elif self.path == "/healthz":
             self._send("ok\n", ctype="text/plain")
         else:
@@ -481,6 +574,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if self.path != "/login":
             self._send(render_resultado("#ff9f8f", "404", "no", "&#10005;", "Rota inexistente."), 404)
             return
+        ip = self.client_address[0] if self.client_address else "?"
+        # v3: rate limiting — se o IP está bloqueado, responde 429 (defesa anti-brute-force)
+        restante = ESTADO.ip_bloqueado(ip)
+        if restante > 0:
+            self._send(render_resultado("#ffb3a6", "MUITAS TENTATIVAS", "no", "&#9203;",
+                       f"IP temporariamente bloqueado. Tente em {restante}s."),
+                       429, extra={"Retry-After": str(restante)})
+            return
         tam = int(self.headers.get("Content-Length", 0) or 0)
         corpo = self.rfile.read(tam).decode("utf-8", "replace") if tam else ""
         campos = parse_form(corpo)
@@ -489,6 +590,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         exposto = not CFG.tls  # se HTTP, credencial trafega exposta
         ESTADO.registrar_tentativa_http(usuario, senha, exposto)
         if usuario == CFG.user and senha == CFG.password:
+            ESTADO.limpar_falhas_ip(ip)
             ESTADO.abrir(f"HTTP/login (usuario={usuario})", "HTTP", exposto)
             self._send(render_resultado("#7ff0c0", "ACESSO LIBERADO", "ok", "&#10003;",
                        f"Bem-vindo, {html.escape(usuario)}. Porta destrancada."))
@@ -496,6 +598,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             ESTADO.negar("HTTP/login", "HTTP",
                          f"usuario={usuario} senha={senha}" if exposto else "login (cifrado)",
                          exposto)
+            ESTADO.registrar_falha_ip(ip)  # pode disparar bloqueio
             # "Senha incorreta" = marca de FALHA para o hydra
             self._send(render_resultado("#ff9f8f", "ACESSO NEGADO", "no", "&#10005;", "Senha incorreta."), 401)
 
@@ -555,7 +658,7 @@ def iniciar_mqtt(broker, port, topic_cmd, topic_tel):
 
     def on_message(c, u, msg):
         payload = msg.payload.decode("utf-8", "replace").strip().lower()
-        exposto = (port == 1883)  # sem TLS => exposto
+        exposto = not CFG.mqtt_tls  # sem TLS => trafega exposto (v3: antes fixo em port==1883)
         if payload in ("abrir", "open", "1", "unlock"):
             ESTADO.registrar_injecao()
             ESTADO.abrir(f"MQTT ({msg.topic})", "MQTT", exposto)
@@ -571,6 +674,21 @@ def iniciar_mqtt(broker, port, topic_cmd, topic_tel):
         client = mqtt.Client()
     client.on_connect = on_connect
     client.on_message = on_message
+    # v3: autenticação (user/senha) — para o dispositivo continuar funcionando após a virada
+    if CFG.mqtt_user:
+        client.username_pw_set(CFG.mqtt_user, CFG.mqtt_pass)
+    # v3: MQTT sobre TLS — usa a CA do broker (ou modo inseguro para teste)
+    if CFG.mqtt_tls:
+        try:
+            if CFG.cafile:
+                client.tls_set(ca_certs=CFG.cafile)
+            else:
+                client.tls_set()
+            if CFG.insecure_tls:
+                client.tls_insecure_set(True)
+            print(f"[mqtt] TLS habilitado (cafile={CFG.cafile or 'sistema'})")
+        except Exception as e:
+            print(f"[mqtt] falha ao configurar TLS: {e}")
     try:
         client.connect(broker, port, 60)
     except Exception as e:
@@ -606,6 +724,12 @@ def self_test():
         url = f"{proto}://127.0.0.1:{CFG.http_port}/healthz"
         with urllib.request.urlopen(url, timeout=3, context=ctx) as r:
             print("  [ok] HTTP responde:", r.read().decode().strip())
+        # v3: confere o endpoint de métricas (Observabilidade)
+        murl = f"{proto}://127.0.0.1:{CFG.http_port}/metrics"
+        with urllib.request.urlopen(murl, timeout=3, context=ctx) as r:
+            corpo = r.read().decode()
+            print("  [ok] /metrics expõe Prometheus" if "iot_porta_trancada" in corpo
+                  else "  [aviso] /metrics sem métricas esperadas")
     except Exception as e:
         ok = False; print("  [FALHA] HTTP:", e)
     # MQTT
@@ -634,7 +758,7 @@ def self_test():
 # ============================================================ main
 def main():
     global ESTADO, CFG
-    ap = argparse.ArgumentParser(description="Dispositivo IoT simulado v2 (demo G6)")
+    ap = argparse.ArgumentParser(description="Dispositivo IoT simulado v3 (demo G6)")
     ap.add_argument("--http-port", type=int, default=80)
     ap.add_argument("--broker", default="127.0.0.1")
     ap.add_argument("--mqtt-port", type=int, default=1883)
@@ -647,16 +771,34 @@ def main():
     ap.add_argument("--tls", action="store_true", help="painel em HTTPS (virada)")
     ap.add_argument("--certfile", default="dev.crt")
     ap.add_argument("--keyfile", default="dev.key")
+    # v3: rate limiting anti-brute-force (defesa demonstrável no simulado)
+    ap.add_argument("--max-fails", type=int, default=0,
+                    help="falhas por IP antes de bloquear (0=desligado; ex.: 5 para a virada)")
+    ap.add_argument("--lockout", type=int, default=30,
+                    help="segundos de bloqueio ao atingir --max-fails")
+    # v3: MQTT com autenticação/TLS (para o alvo seguir funcionando após a virada do broker)
+    ap.add_argument("--mqtt-user", default="", help="usuário do broker (após a virada)")
+    ap.add_argument("--mqtt-pass", default="", help="senha do broker (após a virada)")
+    ap.add_argument("--mqtt-tls", action="store_true", help="conecta ao broker via TLS (8883)")
+    ap.add_argument("--cafile", default="", help="CA do broker para validar o TLS")
+    ap.add_argument("--insecure-tls", action="store_true",
+                    help="não valida o certificado do broker (apenas laboratório)")
     ap.add_argument("--self-test", action="store_true", help="checa HTTP/MQTT e sai")
     CFG = ap.parse_args()
     ESTADO = Estado(auto_relock=CFG.auto_relock)
 
     print("=" * 58)
-    print(" DISPOSITIVO IoT SIMULADO v2 — Seminario G6 (demo educacional)")
+    print(" DISPOSITIVO IoT SIMULADO v3 — Seminario G6 (demo educacional)")
     print("=" * 58)
     print(f"  painel     : {'HTTPS' if CFG.tls else 'HTTP'} porta {CFG.http_port}  login {CFG.user}/{CFG.password}")
-    print(f"  broker MQTT: {CFG.broker}:{CFG.mqtt_port}  cmd '{CFG.topic_cmd}'  tel '{CFG.topic_tel}'")
+    mqtt_seg = "TLS" if CFG.mqtt_tls else "sem TLS"
+    mqtt_auth = f"user {CFG.mqtt_user}" if CFG.mqtt_user else "anonimo"
+    print(f"  broker MQTT: {CFG.broker}:{CFG.mqtt_port} ({mqtt_seg}, {mqtt_auth})  cmd '{CFG.topic_cmd}'  tel '{CFG.topic_tel}'")
     print(f"  telemetria : DHT22 + NTC a cada {CFG.telemetria}s")
+    if CFG.max_fails:
+        print(f"  rate limit : bloqueia IP apos {CFG.max_fails} falhas por {CFG.lockout}s")
+    else:
+        print("  rate limit : DESLIGADO (inseguro de proposito; use --max-fails na virada)")
     print("=" * 58)
 
     iniciar_http(CFG.http_port, CFG.tls, CFG.certfile, CFG.keyfile)

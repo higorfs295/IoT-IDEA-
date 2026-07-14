@@ -7,23 +7,29 @@
 > **⚠️ Ensaie esta parte antes.** Gerar certificado e configurar o broker/dispositivo é
 > o que mais toma tempo. Se o tempo de palco for curto, deixe a virada como **vídeo/prints**.
 
-## Defesa 1 — Senha forte (barra o brute force do Cenário A)
+> **Atalho (v3):** `sudo bash kali/harden.sh <IP_KALI> [usuario] [senha]` faz sozinho os
+> passos da Defesa 2 (CA/cert + usuário + mosquitto em 8883/TLS/auth) e testa. Ele imprime,
+> no fim, o comando exato para religar o alvo simulado no modo seguro. Se preferir entender
+> passo a passo, siga o manual abaixo.
 
-No dispositivo, troque a senha padrão por uma senha forte:
-- **Simulado:** reinicie apontando `--password`:
+## Defesa 1 — Senha forte + rate limiting (barra o brute force do Cenário A)
+
+No dispositivo, troque a senha padrão por uma senha forte **e ligue o rate limiting**:
+- **Simulado:** reinicie com `--password` e `--max-fails`:
   ```bash
   sudo python3 dispositivo_iot.py --broker <IP_KALI> --http-port 80 \
-       --password "S3nh@-Forte-#2026"
+       --password "S3nh@-Forte-#2026" --max-fails 5 --lockout 30
   ```
-- **Físico:** altere `PAINEL_PASS` no firmware e regrave.
+- **Físico:** `#define MODO_SEGURO true` (aplica senha forte + rate limiting) e regrave.
 
 Repita o hydra:
 ```bash
 hydra -l admin -P ~/wordlist_demo.txt <IP_VM_ESP32> \
       http-post-form "/login:usuario=^USER^&senha=^PASS^:Senha incorreta"
 ```
-**Resultado:** o hydra **não** encontra a senha (não está na wordlist). 
-> "Senha forte e única quebra a viabilidade do brute force."
+**Resultado:** o hydra **não** encontra a senha (não está na wordlist) **e** é bloqueado —
+após 5 tentativas o alvo passa a responder **HTTP 429** e o placar de **bloqueios** sobe.
+> "Senha forte e única quebra a viabilidade do brute force; o rate limiting corta a força bruta antes mesmo disso — é defesa em camadas."
 
 ## Defesa 2 — MQTT sobre TLS + autenticação (barra a injeção do Cenário B)
 
@@ -89,7 +95,25 @@ mosquitto_pub -h <IP_KALI> -p 8883 --cafile ~/mqtt-tls/ca.crt -t casa/porta -m a
 ### 2.5 Re-interceptar com o Wireshark
 Repita a captura com filtro `mqtt`/`tls`: o conteúdo agora aparece **cifrado** — o tópico/payload não são mais legíveis.
 
-> **Ressalva:** para o **dispositivo** continuar recebendo comandos legítimos após a virada, ele também precisa falar TLS. No firmware, use `WiFiClientSecure` + `setCACert(ca.crt)` e `connect(clientId, "iot_user", "<senha>")` na porta 8883 (ver comentário no fim do `firmware_esp32.ino`). No simulado, a versão simples não faz TLS de servidor — para a virada MQTT, foque na **rejeição da injeção** e na **captura cifrada**, que já demonstram o ponto.
+### 2.6 Religar o ALVO no canal seguro (v3 — agora fecha 100%)
+
+Para o dispositivo **continuar recebendo comandos legítimos** após a virada, ele fala TLS/auth:
+
+- **Simulado** (`dispositivo_iot.py`) — o `harden.sh` imprime este comando pronto:
+  ```bash
+  python3 dispositivo_iot.py --broker <IP_KALI> --http-port 443 \
+    --tls --certfile dev.crt --keyfile dev.key --password "S3nh@-Forte" \
+    --max-fails 5 --lockout 30 \
+    --mqtt-port 8883 --mqtt-tls --cafile ~/mqtt-tls/ca.crt \
+    --mqtt-user iot_user --mqtt-pass "<senha>"
+  ```
+- **Físico** (`firmware_esp32.ino`): `#define MODO_SEGURO true`, cole a `ca.crt` em `CA_CERT` e
+  defina `MQTT_USER`/`MQTT_PASS`. O firmware passa a usar `WiFiClientSecure` + `setCACert` e
+  `connect(clientId, MQTT_USER, MQTT_PASS)` na porta 8883.
+
+> **Ressalva honesta:** o **painel do ESP32** continua em HTTP (HTTPS de servidor no ESP32 exige
+> proxy TLS ou lib dedicada — fora do escopo). No **simulado**, `--tls` já entrega o painel em
+> HTTPS de verdade, então a virada do Cenário A também fica 100% ao vivo.
 
 ## Fecho (fala)
 "Ligando TLS, a interceptação falha; exigindo autenticação no broker, a injeção falha; e com senha forte, o brute force falha. Nenhuma medida sozinha resolve tudo — segurança é em camadas."
