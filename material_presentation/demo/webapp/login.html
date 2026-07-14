@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Câmera IoT — Acesso</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="assets/favicon.svg">
+</head>
+<body class="loginpage">
+  <div class="scene">
+    <div class="left">
+      <svg class="hex" style="top:-20px;right:-10px" width="180" height="180" viewBox="0 0 100 100"><polygon points="50,3 93,26 93,74 50,97 7,74 7,26" fill="#173e63"/></svg>
+      <svg class="hex" style="bottom:60px;right:40px" width="90" height="90" viewBox="0 0 100 100"><polygon points="50,3 93,26 93,74 50,97 7,74 7,26" fill="#38bdf8" opacity=".25"/></svg>
+      <span class="badge2"><span class="dot"></span> dispositivo online · rede local</span>
+      <h1>Câmera IoT<br>Fechadura Inteligente</h1>
+      <p>Acesse o painel para monitorar sensores e controlar a trava da porta.</p>
+      <div class="cam">
+        <div class="eye">📷</div>
+        <div><b id="devlabel">CAM-G6 / porta principal</b><span>firmware v2 · MQTT + HTTP</span></div>
+      </div>
+      <div class="meta" id="hostmeta">host 192.168.56.20 · rede interna</div>
+    </div>
+    <div class="right login">
+      <h2>Acesso ao painel <span class="tag">HTTP</span></h2>
+      <div class="sub">Entre com as credenciais do dispositivo</div>
+      <form id="loginform" method="POST" action="/login">
+        <label>Usuário</label>
+        <div class="field"><span class="fi">👤</span><input name="usuario" value="admin" autocomplete="off"></div>
+        <label>Senha</label>
+        <div class="field"><span class="fi">🔒</span><input name="senha" value="admin123" autocomplete="off"></div>
+        <button type="submit">Entrar e destravar</button>
+        <div class="note">⚠️ <span>Demonstração educacional. A comunicação é <b>HTTP sem criptografia</b> de propósito — as credenciais trafegam legíveis na rede.</span></div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>

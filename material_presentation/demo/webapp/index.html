@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Câmera IoT — Painel de Controle</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="assets/favicon.svg">
+</head>
+<body>
+  <div class="topbar">
+    <div class="logo">IoT</div>
+    <div class="brand">
+      <b>Câmera IoT — Painel de Controle</b>
+      <span>Fechadura inteligente · Seminário G6 · Segurança em IoT</span>
+    </div>
+    <div class="pill"><span class="dot"></span> <span id="live">demo · simulação</span></div>
+  </div>
+
+  <div class="wrap">
+    <!-- HERO da trava + telemetria -->
+    <section class="card lock st-TRANCADA" id="lockcard">
+      <h2>Estado da trava</h2>
+      <div class="lockface">
+        <div class="lockicon" id="lockicon">🔒</div>
+        <div>
+          <div class="lockstate" id="lockstate">TRANCADA</div>
+          <div class="badge" id="lockbadge">porta trancada</div>
+          <div class="lockmeta" id="lockmeta">—</div>
+        </div>
+      </div>
+      <div class="tele">
+        <div class="tcell">
+          <div class="ic">🌡️</div>
+          <div class="v"><span id="tdht">--</span><span class="u">°C</span></div>
+          <div class="k">DHT22 · temperatura</div>
+          <svg class="spark" id="sp_tdht"></svg>
+        </div>
+        <div class="tcell">
+          <div class="ic">💧</div>
+          <div class="v"><span id="udht">--</span><span class="u">%</span></div>
+          <div class="k">DHT22 · umidade</div>
+          <svg class="spark" id="sp_udht"></svg>
+        </div>
+        <div class="tcell">
+          <div class="ic">🔥</div>
+          <div class="v"><span id="tntc">--</span><span class="u">°C</span></div>
+          <div class="k">NTC 10k · temperatura</div>
+          <svg class="spark" id="sp_tntc"></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- lateral: placar + login -->
+    <aside class="side">
+      <section class="card">
+        <h2>Placar de ataque</h2>
+        <div class="kpis">
+          <div class="kpi http" id="kpi_http"><div class="n" id="k_http">0</div><div class="l">tentativas HTTP</div></div>
+          <div class="kpi fail" id="kpi_fail"><div class="n" id="k_fail">0</div><div class="l">falhas login</div></div>
+          <div class="kpi inj" id="kpi_inj"><div class="n" id="k_inj">0</div><div class="l">injeções MQTT</div></div>
+        </div>
+        <div class="last"><b>última tentativa:</b><br><span id="ult">—</span></div>
+      </section>
+
+      <section class="card login">
+        <h2>Autenticação <span class="tag" id="authtag">HTTP · SEM TLS</span></h2>
+        <form id="loginform" method="POST" action="/login">
+          <label>Usuário</label>
+          <div class="field"><span class="fi">👤</span><input name="usuario" value="admin"></div>
+          <label>Senha</label>
+          <div class="field"><span class="fi">🔒</span><input name="senha" value="admin123"></div>
+          <button type="submit">Entrar / destravar</button>
+          <div class="warn">⚠️ <span>Demo educacional: as credenciais podem trafegar <b>sem criptografia</b> (de propósito).</span></div>
+        </form>
+      </section>
+    </aside>
+
+    <!-- log -->
+    <section class="card logcard">
+      <h2>Log de eventos — o que o atacante viu × o que estava protegido</h2>
+      <table>
+        <thead><tr><th>hora</th><th>canal</th><th>tipo</th><th>detalhe</th><th>exposição</th></tr></thead>
+        <tbody id="log"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <!-- controles de demonstração (funcionam no modo demo) -->
+  <div class="foot">
+    <span>Seminário G6 — Segurança em IoT · Internet das Coisas (UFG)</span>
+    <span>
+      <a href="login.html">tela de login</a> ·
+      <button id="btn_inject" style="all:unset;cursor:pointer;color:var(--amber)">injetar MQTT</button> ·
+      <button id="btn_brute" style="all:unset;cursor:pointer;color:var(--cyan)">simular brute force</button> ·
+      <button id="btn_tls" style="all:unset;cursor:pointer;color:var(--good)">ligar/desligar TLS</button>
+    </span>
+  </div>
+
+  <div class="modebadge" id="modebadge"><span class="dot"></span> modo <b>demo</b></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

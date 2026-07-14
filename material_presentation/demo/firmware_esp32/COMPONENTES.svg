@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 540" font-family="Segoe UI,Arial,sans-serif">
+<defs><marker id="ah" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,3 L0,6 Z" fill="#4a6fa5"/></marker></defs>
+<rect width="940" height="540" fill="#eef3f8"/>
+<text x="28" y="40" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#0f2c4c" text-anchor="start" font-weight="700">Diagrama de componentes — Demo de Segurança em IoT</text>
+<text x="28" y="62" font-family="Segoe UI,Arial,sans-serif" font-size="13" fill="#7e8fa6" text-anchor="start" >Sensores → Dispositivo (ESP32/VM) → Rede → Atacante (Kali)</text>
+<rect x="40" y="110" width="190" height="150" rx="10" fill="#ffffff" stroke="#c9d6e5" stroke-width="1.5"/>
+<text x="60" y="135" font-family="Segoe UI,Arial,sans-serif" font-size="12" fill="#4a6fa5" text-anchor="start" font-weight="700">SENSORES</text>
+<rect x="58" y="150" width="154" height="44" rx="10" fill="#eef3f8" stroke="#c9d6e5" stroke-width="1.5"/>
+<text x="70" y="170" font-family="Segoe UI,Arial,sans-serif" font-size="13" fill="#0f2c4c" text-anchor="start" font-weight="700">DHT22</text>
+<text x="70" y="186" font-family="Segoe UI,Arial,sans-serif" font-size="10" fill="#7e8fa6" text-anchor="start" >temp + umidade</text>
+<rect x="58" y="202" width="154" height="44" rx="10" fill="#eef3f8" stroke="#c9d6e5" stroke-width="1.5"/>
+<text x="70" y="222" font-family="Segoe UI,Arial,sans-serif" font-size="13" fill="#0f2c4c" text-anchor="start" font-weight="700">NTC 10k</text>
+<text x="70" y="238" font-family="Segoe UI,Arial,sans-serif" font-size="10" fill="#7e8fa6" text-anchor="start" >temperatura (ADC)</text>
+<rect x="300" y="100" width="300" height="300" rx="12" fill="#0f2c4c" stroke="#0f2c4c" stroke-width="2"/>
+<text x="450" y="128" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#fff" text-anchor="middle" font-weight="700">DISPOSITIVO IoT</text>
+<text x="450" y="146" font-family="Segoe UI,Arial,sans-serif" font-size="11" fill="#9fb4ce" text-anchor="start" font-weight="700">ESP32 físico  ·  ou  VM simulada</text>
+<rect x="322" y="165" width="256" height="50" rx="10" fill="#12385f" stroke="#274a6b" stroke-width="1.5"/>
+<text x="338" y="186" font-family="Segoe UI,Arial,sans-serif" font-size="13" fill="#dbe8f7" text-anchor="start" font-weight="700">Painel web (HTTP)</text>
+<text x="338" y="203" font-family="Segoe UI,Arial,sans-serif" font-size="10" fill="#9fb4ce" text-anchor="start" >login admin/admin  →  destrava</text>
+<rect x="322" y="225" width="256" height="50" rx="10" fill="#12385f" stroke="#274a6b" stroke-width="1.5"/>
+<text x="338" y="246" font-family="Segoe UI,Arial,sans-serif" font-size="13" fill="#dbe8f7" text-anchor="start" font-weight="700">Cliente MQTT</text>
+<text x="338" y="263" font-family="Segoe UI,Arial,sans-serif" font-size="9.5" fill="#9fb4ce" text-anchor="start" >assina casa/porta · publica casa/telemetria</text>
+<rect x="322" y="285" width="256" height="90" rx="10" fill="#12385f" stroke="#274a6b" stroke-width="1.5"/>
+<text x="338" y="306" font-family="Segoe UI,Arial,sans-serif" font-size="13" fill="#dbe8f7" text-anchor="start" font-weight="700">Atuadores / feedback</text>
+<text x="338" y="326" font-family="Segoe UI,Arial,sans-serif" font-size="10" fill="#9fb4ce" text-anchor="start" >relé (trava) · LED verde/vermelho</text>
+<text x="338" y="342" font-family="Segoe UI,Arial,sans-serif" font-size="10" fill="#9fb4ce" text-anchor="start" >buzzer · painel ao vivo</text>
+<text x="338" y="360" font-family="Segoe UI,Arial,sans-serif" font-size="9.5" fill="#7d93b0" text-anchor="start" >(modo tela quando sem atuador)</text>
+<rect x="670" y="110" width="230" height="290" rx="10" fill="#ffffff" stroke="#c9d6e5" stroke-width="1.5"/>
+<text x="690" y="135" font-family="Segoe UI,Arial,sans-serif" font-size="12" fill="#b4442e" text-anchor="start" font-weight="700">VM KALI (atacante)</text>
+<rect x="688" y="155" width="196" height="58" rx="10" fill="#eef3f8" stroke="#c9d6e5" stroke-width="1.5"/>
+<text x="702" y="177" font-family="Segoe UI,Arial,sans-serif" font-size="13" fill="#0f2c4c" text-anchor="start" font-weight="700">Wireshark</text>
+<text x="702" y="195" font-family="Segoe UI,Arial,sans-serif" font-size="10" fill="#7e8fa6" text-anchor="start" >captura tráfego em claro</text>
+<rect x="688" y="227" width="196" height="58" rx="10" fill="#eef3f8" stroke="#c9d6e5" stroke-width="1.5"/>
+<text x="702" y="249" font-family="Segoe UI,Arial,sans-serif" font-size="13" fill="#0f2c4c" text-anchor="start" font-weight="700">hydra</text>
+<text x="702" y="267" font-family="Segoe UI,Arial,sans-serif" font-size="10" fill="#7e8fa6" text-anchor="start" >brute force do login HTTP</text>
+<rect x="688" y="299" width="196" height="58" rx="10" fill="#eef3f8" stroke="#c9d6e5" stroke-width="1.5"/>
+<text x="702" y="321" font-family="Segoe UI,Arial,sans-serif" font-size="13" fill="#0f2c4c" text-anchor="start" font-weight="700">mosquitto (broker)</text>
+<text x="702" y="339" font-family="Segoe UI,Arial,sans-serif" font-size="10" fill="#7e8fa6" text-anchor="start" >MQTT + injeção de comando</text>
+<line x1="230" y1="185" x2="300" y2="190" stroke="#4a6fa5" stroke-width="2.2" marker-end="url(#ah)" /><text x="265.0" y="181.5" font-family="Segoe UI,Arial,sans-serif" font-size="11" fill="#4a6fa5" text-anchor="middle" font-weight="700">leitura</text>
+<line x1="230" y1="224" x2="300" y2="250" stroke="#4a6fa5" stroke-width="2.2" marker-end="url(#ah)" />
+<line x1="600" y1="190" x2="688" y2="184" stroke="#b4442e" stroke-width="2.2" marker-end="url(#ah)" /><text x="644.0" y="181.0" font-family="Segoe UI,Arial,sans-serif" font-size="11" fill="#b4442e" text-anchor="middle" font-weight="700">HTTP sem TLS</text>
+<line x1="600" y1="250" x2="688" y2="264" stroke="#b4442e" stroke-width="2.2" marker-end="url(#ah)" /><text x="644.0" y="251.0" font-family="Segoe UI,Arial,sans-serif" font-size="11" fill="#b4442e" text-anchor="middle" font-weight="700">MQTT sem TLS</text>
+<line x1="688" y1="300" x2="600" y2="320" stroke="#2e7d5b" stroke-width="2.2" marker-end="url(#ah)" /><text x="644.0" y="304.0" font-family="Segoe UI,Arial,sans-serif" font-size="11" fill="#2e7d5b" text-anchor="middle" font-weight="700">injeta abrir</text>
+<rect x="40" y="430" width="860" height="70" rx="10" fill="#e3ecf6" stroke="#c9d6e5" stroke-width="1.5"/>
+<text x="60" y="458" font-family="Segoe UI,Arial,sans-serif" font-size="13" fill="#0f2c4c" text-anchor="start" font-weight="700">Rede interna / host-only (mesma sub-rede, isolada)</text>
+<text x="60" y="478" font-family="Segoe UI,Arial,sans-serif" font-size="11" fill="#7e8fa6" text-anchor="start" >VM ESP32-simulado  ·  VM Kali (broker aqui)  ·  ou ESP32 físico — atacar apenas o próprio dispositivo</text>
+</svg>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Câmera IoT — Resultado</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="assets/favicon.svg">
+</head>
+<body class="resultpage">
+  <div class="card rbox">
+    <div class="rc" id="rc">?</div>
+    <h1 id="rtitle">—</h1>
+    <p id="rmsg" style="color:var(--muted)">—</p>
+    <a href="index.html">voltar ao painel</a>
+  </div>
+  <script>
+    (function () {
+      var p = new URLSearchParams(location.search);
+      var ok = p.get('r') === 'ok';
+      document.getElementById('rc').className = 'rc ' + (ok ? 'ok' : 'no');
+      document.getElementById('rc').textContent = ok ? '✓' : '✕';
+      var t = document.getElementById('rtitle');
+      t.textContent = ok ? 'ACESSO LIBERADO' : 'ACESSO NEGADO';
+      t.style.color = ok ? '#7ff0c0' : '#ff9f8f';
+      document.getElementById('rmsg').textContent = ok
+        ? 'Bem-vindo, admin. Porta destrancada.'
+        : 'Senha incorreta.';
+    })();
+  </script>
+</body>
+</html>
