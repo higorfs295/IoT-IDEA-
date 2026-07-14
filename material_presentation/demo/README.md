@@ -24,9 +24,12 @@ duas VMs na **mesma rede interna**.
 - **Painel HTTPS opcional (`--tls`)** → virada 100% ao vivo.
 - **Esquemático + diagrama de componentes (SVG)** e **mapeamento de pinos**.
 
-## Aplicação web (nova)
-A pasta `webapp/` traz o front-end completo em HTML/CSS/JS: abra `webapp/index.html`
-(modo demo, sem backend) ou aponte para o dispositivo real via `webapp/js/config.js`.
+## Aplicação web (console de gestão)
+A pasta `webapp/` traz um **console de gestão** completo em HTML/CSS/JS puro (sem build,
+sem dependências): navegação lateral, 9 páginas (Visão geral, Dispositivos, Telemetria,
+Central de Segurança, Eventos & Logs, Conformidade, Configurações, Ajuda), gráficos em SVG
+e temas claro/escuro. Abra `webapp/index.html` (modo demo, sem backend) ou aponte para o
+dispositivo real via `webapp/js/config.js` (ou pela própria página de Configurações).
 Detalhes em `webapp/README.md`.
 
 ## Pré-visualização da interface
@@ -46,10 +49,11 @@ pacote/
 ├── CHANGELOG.md                       <- histórico de versões (v1 → v3)
 ├── docs/
 │   └── Demo_Seguranca_IoT_G6.md       <- documentação completa (arquitetura, STRIDE, roteiro)
-├── webapp/                            <- APLICACAO WEB (HTML/CSS/JS) — dashboard + login + resultado
+├── webapp/                            <- CONSOLE DE GESTÃO (HTML/CSS/JS) — 9 páginas + login + resultado
 │   ├── index.html · login.html · resultado.html
-│   ├── css/style.css · js/{config,store,dashboard,login}.js
-│   └── README.md                      <- como rodar (modo demo e modo conectado)
+│   ├── css/style.css                  <- design system (tokens claro/escuro + componentes)
+│   ├── js/{config,store,charts,ui,fleet,router,views,app,login}.js
+│   └── README.md                      <- páginas, componentes e como rodar (demo/conectado)
 ├── dispositivo_vm/
 │   └── dispositivo_iot.py             <- alvo SIMULADO (web vivo + MQTT/TLS + telemetria + rate limit + /metrics)
 ├── firmware_esp32/
